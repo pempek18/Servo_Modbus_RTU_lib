@@ -31,18 +31,32 @@ The Lichuan LCDA630 is a high-performance servo drive that can be controlled usi
     ```sh
     cd Lichuan_LCDA630_Modbus_RTU
     ```
-3. Install the required dependencies:
+3. Install the required submodules:
     ```sh
-    pip install -r requirements.txt
+    git submodule update --init --recursive
     ```
-
+4. Install required system packages:
+    ```sh
+    sudo apt-get install libnet1-dev
+    ```
 ### Usage
 
 1. Connect the RS485 to USB converter to your computer and the Lichuan LCDA630 Servo Drive.
 2. Configure the serial port settings (e.g., baud rate, parity, etc.) as per the servo drive's manual.
-3. Run the example script to test the connection and control the servo:
+3. Build the program with cmake:
     ```sh
-    python example.py
+    mkdir build
+    cd build
+    cmake ..
+    ```
+4. Run the program:
+    ```sh
+    make
+    ./Lichuan_RS_Libary
+    ```
+5. Use folowing comand to run at once:
+    ```sh
+    clear; make; ./Lichuan_RS_Libary
     ```
 
 ## Documentation
