@@ -7,17 +7,16 @@
 #include "MB/modbusResponse.hpp"
 #include "lichuan/LCDA630P_Modbus_RTU.hpp"
 
-std::string show_modbus_frame();
+std::vector<uint8_t> show_modbus_frame();
 void send_request_over_serial(std::string request);
 
 int main()
 {
-    std::string request = show_modbus_frame();
-    std::cout << "Request: " << request << std::endl;
     LCDA630P_Modbus_RTU servo;
     servo.scan_devices();
-    uint8_t frame[7];
-    servo.read_parameter(frame, 1, 2, 2, 2);
+    std::vector<uint8_t> frame = servo.read_parameter(1, 2, 2, 2);
+    std::vector<uint8_t> frame2 = servo.write_parameter(1, 2, 2, 2);
+    std::vector<uint8_t> frame3 = servo.write_parameter_32(1, 5, 7, 123);
 
     // Convert uint16_t array to string
     std::string request_string;
@@ -25,13 +24,20 @@ int main()
     {
         request_string += static_cast<char>(frame[i]);        // Get low byte
     }
-
-    send_request_over_serial(request);
+    std::cout << "*****************For testing*****************" << std::endl;
+    std::vector<uint8_t> request = show_modbus_frame();
+    // Convert request.toRaw() to string
+    std::string request_string_from_modbus = "";
+    for (uint8_t byte : request) {
+        request_string_from_modbus += static_cast<char>(byte);
+    }
+    std::cout << "*****************For testing*****************" << std::endl;
+    send_request_over_serial(request_string_from_modbus);
     std::cout << "Start Lichuan servo app" << std::endl;
     return 0;
 }
 
-std::string show_modbus_frame()
+std::vector<uint8_t> show_modbus_frame()
 {
     // Create simple request
     MB::ModbusRequest request(1, MB::utils::ReadAnalogOutputHoldingRegisters, 0x0202, 2);
@@ -64,9 +70,7 @@ std::string show_modbus_frame()
     std::cout << std::endl;
 
     rawed.insert(rawed.end(), CRCptr, CRCptr + 2);
-    auto request2 = MB::ModbusRequest::fromRawCRC(rawed); // Throws on invalid CRC
-    std::cout << "Stringed Request 2 after rawed: " << request2.toString() << std::endl;
-    return request2.toString();
+    return rawed;
 }
 
 void send_request_over_serial(std::string request)
