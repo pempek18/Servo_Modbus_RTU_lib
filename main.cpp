@@ -9,6 +9,7 @@
 
 std::vector<uint8_t> show_modbus_frame();
 void send_request_over_serial(std::string request);
+std::vector<uint8_t> send(std::string request);
 std::string vector_to_string(std::vector<uint8_t>);
 int main()
 {
@@ -22,17 +23,27 @@ int main()
     // Convert request.toRaw() to string
     std::string request_string_from_modbus = vector_to_string(request);
     std::cout << "*****************For testing*****************" << std::endl;
+    std::cout << "*****************Read & Write*****************" << std::endl;
     send_request_over_serial(request_string_from_modbus);
     std::cout << "Read P02.04, write 50 and read again" << std::endl;
     std::vector<uint8_t> p02_4 = servo.read_parameter(1, 2, 4, 2);
     std::string p02_4_s = vector_to_string(p02_4);
     send_request_over_serial(p02_4_s);
-    p02_4 = servo.write_parameter(1, 2, 4, 50);
+    p02_4 = servo.write_parameter(1, 2, 4, 50); // manually cannot write to 
     p02_4_s = vector_to_string(p02_4);
     send_request_over_serial(p02_4_s);
+    std::cout << "*****************Read & Write*****************" << std::endl;
+    std::cout << "*****************Read Brief*****************" << std::endl;
+    std::vector<std::vector<uint8_t>> params = servo.read_servo_brief(1);
+    for (std::vector<uint8_t> param : params)
+    {
+        std::string param_s = vector_to_string(param);
+        std::vector<uint8_t> feedback =  send(param_s);
+        std::pair<int,int> response = servo.parseModbusResponse(feedback, true) ;
+    }
+    std::cout << "*****************Read Brief*****************" << std::endl;
     return 0;
 }
-
 std::string vector_to_string(std::vector<uint8_t> frame)
 {
     // Convert uint16_t array to string
@@ -43,7 +54,6 @@ std::string vector_to_string(std::vector<uint8_t> frame)
     }
     return request_string ;
 }
-
 std::vector<uint8_t> show_modbus_frame()
 {
     // Create simple request
@@ -79,7 +89,36 @@ std::vector<uint8_t> show_modbus_frame()
     rawed.insert(rawed.end(), CRCptr, CRCptr + 2);
     return rawed;
 }
+std::vector<uint8_t> send(std::string request)
+{
+    std::vector<uint8_t> response_vector ; 
+    try
+    {
+        boost::asio::io_service io;
+        boost::asio::serial_port serial(io, "/dev/ttyUSB0"); // Change to your port
 
+        // Set serial port parameters
+        serial.set_option(boost::asio::serial_port_base::baud_rate(9600));
+        serial.set_option(boost::asio::serial_port_base::character_size(8));
+        serial.set_option(boost::asio::serial_port_base::parity(boost::asio::serial_port_base::parity::none));
+        serial.set_option(boost::asio::serial_port_base::stop_bits(boost::asio::serial_port_base::stop_bits::one));
+
+        boost::asio::write(serial, boost::asio::buffer(request));
+
+        for (char c : request)
+        {
+            response_vector.push_back(c);
+        }
+        size_t n = boost::asio::read(serial, boost::asio::buffer(response_vector, 8));
+
+        return response_vector ;
+    }
+    catch (std::exception &e)
+    {
+        std::cerr << "Error: " << e.what() << std::endl;
+        return response_vector ;
+    }
+}
 void send_request_over_serial(std::string request)
 {
     std::cout << "Request bytes: ";
