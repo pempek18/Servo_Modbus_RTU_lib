@@ -9,32 +9,39 @@
 
 std::vector<uint8_t> show_modbus_frame();
 void send_request_over_serial(std::string request);
-
+std::string vector_to_string(std::vector<uint8_t>);
 int main()
 {
     LCDA630P_Modbus_RTU servo;
     servo.scan_devices();
-    std::vector<uint8_t> frame = servo.read_parameter(1, 2, 2, 2);
+    std::vector<uint8_t> p02_2 = servo.read_parameter(1, 2, 2, 2);
     std::vector<uint8_t> frame2 = servo.write_parameter(1, 2, 2, 2);
     std::vector<uint8_t> frame3 = servo.write_parameter_32(1, 5, 7, 123);
-
-    // Convert uint16_t array to string
-    std::string request_string;
-    for (int i = 0; i < 7; i++)
-    {
-        request_string += static_cast<char>(frame[i]);        // Get low byte
-    }
     std::cout << "*****************For testing*****************" << std::endl;
     std::vector<uint8_t> request = show_modbus_frame();
     // Convert request.toRaw() to string
-    std::string request_string_from_modbus = "";
-    for (uint8_t byte : request) {
-        request_string_from_modbus += static_cast<char>(byte);
-    }
+    std::string request_string_from_modbus = vector_to_string(request);
     std::cout << "*****************For testing*****************" << std::endl;
     send_request_over_serial(request_string_from_modbus);
-    std::cout << "Start Lichuan servo app" << std::endl;
+    std::cout << "Read P02.04, write 50 and read again" << std::endl;
+    std::vector<uint8_t> p02_4 = servo.read_parameter(1, 2, 4, 2);
+    std::string p02_4_s = vector_to_string(p02_4);
+    send_request_over_serial(p02_4_s);
+    p02_4 = servo.write_parameter(1, 2, 4, 50);
+    p02_4_s = vector_to_string(p02_4);
+    send_request_over_serial(p02_4_s);
     return 0;
+}
+
+std::string vector_to_string(std::vector<uint8_t> frame)
+{
+    // Convert uint16_t array to string
+    std::string request_string = "";
+    for (int i = 0; i < 8; i++)
+    {
+        request_string += static_cast<char>(frame[i]);        // Get low byte
+    }
+    return request_string ;
 }
 
 std::vector<uint8_t> show_modbus_frame()
@@ -96,9 +103,14 @@ void send_request_over_serial(std::string request)
         boost::asio::write(serial, boost::asio::buffer(request));
 
         // Example: Read response from the serial port
-        char response[128];
-        size_t n = boost::asio::read(serial, boost::asio::buffer(response, 128));
+        char response[8];
+        size_t n = boost::asio::read(serial, boost::asio::buffer(response, sizeof(response)));
         std::cout << "Response: " << std::string(response, n) << std::endl;
+        for (char c : response) {
+            std::cout << " 0x" << std::hex << std::setw(2) << std::setfill('0') 
+            << static_cast<int>(static_cast<unsigned char>(c));
+        }
+        std::cout << std::endl;
     }
     catch (std::exception &e)
     {

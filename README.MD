@@ -37,7 +37,9 @@ The Lichuan LCDA630 is a high-performance servo drive that can be controlled usi
     ```
 4. Install required system packages:
     ```sh
+    sudo apt update
     sudo apt-get install libnet1-dev
+    sudo apt install libboost-all-dev
     ```
 ### Usage
 
