@@ -102,7 +102,169 @@ std::vector<std::vector<uint8_t>> LCDA630P_Modbus_RTU::read_servo_brief(uint8_t 
     list_of_commands.push_back(read_parameter(slave_id, 0, 28, 2));
     return list_of_commands;
 }
-std::pair<int, int> LCDA630P_Modbus_RTU::parseModbusResponse(const std::vector<uint8_t> &response, bool print)
+std::vector<std::vector<uint8_t>> LCDA630P_Modbus_RTU::test_one_rotation(uint8_t slave_id)
+{
+    std::vector<std::vector<uint8_t>> list_of_commands;
+    std::vector<uint8_t> frame;
+    frame.push_back(slave_id);
+    frame.push_back(0x06);
+    frame.push_back(0x17);
+    frame.push_back(0x00);
+    frame.push_back(0x00);
+    frame.push_back(0x01);
+    frame.push_back(0x4D);
+    frame.push_back(0xBE);
+    list_of_commands.push_back(frame);
+#if DEBUG_SERIAL
+    for (int i = 0; i < frame.size(); i++)
+    {
+        std::stringstream ss;
+        ss << "0x" << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(frame[i]) << " ";
+        DEBUG_SERIAL_PRINT(ss.str());
+    }
+    DEBUG_SERIAL_PRINTLN("");
+#endif    
+    frame.clear();
+    frame.push_back(slave_id);
+    frame.push_back(0x06);
+    frame.push_back(0x17);
+    frame.push_back(0x02);
+    frame.push_back(0x00);
+    frame.push_back(0x1C);
+    frame.push_back(0x2C);
+    frame.push_back(0x77);
+    list_of_commands.push_back(frame);
+#if DEBUG_SERIAL
+    for (int i = 0; i < frame.size(); i++)
+    {
+        std::stringstream ss;
+        ss << "0x" << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(frame[i]) << " ";
+        DEBUG_SERIAL_PRINT(ss.str());
+    }
+    DEBUG_SERIAL_PRINTLN("");
+#endif      
+    frame.clear();
+    frame.push_back(slave_id);
+    frame.push_back(0x06);
+    frame.push_back(0x02);
+    frame.push_back(0x00);
+    frame.push_back(0x00);
+    frame.push_back(0x01);
+    frame.push_back(0x49);
+    frame.push_back(0xB2);
+    list_of_commands.push_back(frame);   
+#if DEBUG_SERIAL
+    for (int i = 0; i < frame.size(); i++)
+    {
+        std::stringstream ss;
+        ss << "0x" << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(frame[i]) << " ";
+        DEBUG_SERIAL_PRINT(ss.str());
+    }
+    DEBUG_SERIAL_PRINTLN("");
+#endif       
+    frame.clear();
+    frame.push_back(slave_id);
+    frame.push_back(0x06);
+    frame.push_back(0x05);
+    frame.push_back(0x00);
+    frame.push_back(0x00);
+    frame.push_back(0x02);
+    frame.push_back(0x08);
+    frame.push_back(0xC7);
+    list_of_commands.push_back(frame); 
+#if DEBUG_SERIAL
+    for (int i = 0; i < frame.size(); i++)
+    {
+        std::stringstream ss;
+        ss << "0x" << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(frame[i]) << " ";
+        DEBUG_SERIAL_PRINT(ss.str());
+    }
+    DEBUG_SERIAL_PRINTLN("");
+#endif      
+    frame.clear();
+    frame.push_back(slave_id);
+    frame.push_back(0x06);
+    frame.push_back(0x11);
+    frame.push_back(0x00);
+    frame.push_back(0x00);
+    frame.push_back(0x03);
+    frame.push_back(0xCC);
+    frame.push_back(0xF7);
+    list_of_commands.push_back(frame);  
+#if DEBUG_SERIAL
+    for (int i = 0; i < frame.size(); i++)
+    {
+        std::stringstream ss;
+        ss << "0x" << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(frame[i]) << " ";
+        DEBUG_SERIAL_PRINT(ss.str());
+    }
+    DEBUG_SERIAL_PRINTLN("");
+#endif         
+    frame.clear();
+    frame.push_back(slave_id);
+    frame.push_back(0x10);
+    frame.push_back(0x11);
+    frame.push_back(0x0C);
+    frame.push_back(0x00);
+    frame.push_back(0x02);
+    frame.push_back(0x04);
+    frame.push_back(0x27);
+    frame.push_back(0x10);
+    frame.push_back(0x00);
+    frame.push_back(0x00);
+    frame.push_back(0x38);
+    frame.push_back(0xD8);
+    list_of_commands.push_back(frame); 
+#if DEBUG_SERIAL
+    for (int i = 0; i < frame.size(); i++)
+    {
+        std::stringstream ss;
+        ss << "0x" << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(frame[i]) << " ";
+        DEBUG_SERIAL_PRINT(ss.str());
+    }
+    DEBUG_SERIAL_PRINTLN("");
+#endif           
+    frame.clear();
+    frame.push_back(slave_id);
+    frame.push_back(0x06);
+    frame.push_back(0x31);
+    frame.push_back(0x00);
+    frame.push_back(0x00);
+    frame.push_back(0x01);
+    frame.push_back(0x46);
+    frame.push_back(0xF6);
+    list_of_commands.push_back(frame);  
+#if DEBUG_SERIAL
+    for (int i = 0; i < frame.size(); i++)
+    {
+        std::stringstream ss;
+        ss << "0x" << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(frame[i]) << " ";
+        DEBUG_SERIAL_PRINT(ss.str());
+    }
+    DEBUG_SERIAL_PRINTLN("");
+#endif      
+    frame.clear();
+    frame.push_back(slave_id);
+    frame.push_back(0x06);
+    frame.push_back(0x31);
+    frame.push_back(0x00);
+    frame.push_back(0x00);
+    frame.push_back(0x03);
+    frame.push_back(0xC7);
+    frame.push_back(0x37);
+    list_of_commands.push_back(frame);  
+#if DEBUG_SERIAL
+    for (int i = 0; i < frame.size(); i++)
+    {
+        std::stringstream ss;
+        ss << "0x" << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(frame[i]) << " ";
+        DEBUG_SERIAL_PRINT(ss.str());
+    }
+    DEBUG_SERIAL_PRINTLN("");
+#endif              
+    return list_of_commands ;
+}
+std::pair<int, int> LCDA630P_Modbus_RTU::parseModbusResponse(const std::vector<uint8_t> &response)
 {
     if (response.size() < 7) {
         throw std::runtime_error("Invalid Modbus response: too short");
@@ -114,9 +276,9 @@ std::pair<int, int> LCDA630P_Modbus_RTU::parseModbusResponse(const std::vector<u
     // Extract second word (0x0000)
     int word2 = (response[5] << 8) | response[6];
 
-    if (print)
-        std::cout << "param number " << std::dec << response.at(3) << " word 1 : " << std::dec << word1 << " word 2 : " << std::dec << word2 << std::endl;
-
+    std::stringstream ss ;
+    ss << "adr: " << char(response[0]) << " f :" << response[1] << " p" << response[2] << " w1 : " << std::dec << word1 << " w2 : " << std::dec << word2 << std::endl;
+    DEBUG_SERIAL_PRINT(ss.str());
     return {word1, word2};
 };
 uint16_t LCDA630P_Modbus_RTU::crcValueCalc(const uint8_t *data, uint16_t length)
