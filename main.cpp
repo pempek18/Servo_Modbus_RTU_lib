@@ -5,7 +5,6 @@
 
 void send_request_over_serial(std::string request);
 std::vector<uint8_t> send(std::string request);
-std::string vector_to_string(std::vector<uint8_t>);
 int main()
 {
     LCDA630P_Modbus_RTU servo;
@@ -14,36 +13,26 @@ int main()
     std::vector<std::vector<uint8_t>> params = servo.read_servo_brief(1);
     for (std::vector<uint8_t> param : params)
     {
-        std::string param_s = vector_to_string(param);
+        std::string param_s = servo.vector_to_string(param);
         std::vector<uint8_t> feedback =  send(param_s);
         std::pair<int,int> response = servo.parseModbusResponse(feedback) ;
     }
     std::cout << "*****************Read Brief*****************" << std::endl;
+    std::cout << "*****************Read P0C-26*****************" << std::endl;
+    std::vector<uint8_t> p0c_26 = servo.read_parameter(1,12,26,2);
+    std::string p0c_26_s = servo.vector_to_string(p0c_26);
+    std::vector<uint8_t> p0c_26_r = send(p0c_26_s);
+    std::pair<int,int> p0c_26_f = servo.parseModbusResponse(p0c_26_r);
+    std::cout << "*****************Read P0C-26*****************" << std::endl;
     std::cout << "*****************Move one rotation*****************" << std::endl;
     std::vector<std::vector<uint8_t>> one_rot = servo.test_one_rotation(1);
     for (std::vector<uint8_t> param : one_rot)
     {
-        std::string param_s = vector_to_string(param);
+        std::string param_s = servo.vector_to_string(param);
         send(param_s);
     }
     std::cout << "*****************Move one rotation*****************" << std::endl;
     return 0;
-}
-std::string vector_to_string(std::vector<uint8_t> frame)
-{
-    // Convert uint16_t array to string
-    std::string request_string = "";
-    int size_of_frame = 8;
-    if (frame[1] == 0x06)
-        size_of_frame = 8;
-    else if (frame[1] == 0x10)
-        size_of_frame = 13;
-
-    for (int i = 0; i < size_of_frame ; i++)
-    {
-        request_string += static_cast<char>(frame[i]);        // Get low byte
-    }
-    return request_string ;
 }
 std::vector<uint8_t> send(std::string request)
 {
@@ -70,10 +59,10 @@ std::vector<uint8_t> send(std::string request)
         std::cout << std::endl;
 
         int size_of_frame = 8;
-        if (request[1] == 0x06)
+        if (request[1] == 0x10)
             size_of_frame = 8;
-        else if (request[1] == 0x10)
-            size_of_frame = 13;
+        else 
+            size_of_frame = 8;
 
         size_t n = boost::asio::read(serial, boost::asio::buffer(response_vector, size_of_frame));
 

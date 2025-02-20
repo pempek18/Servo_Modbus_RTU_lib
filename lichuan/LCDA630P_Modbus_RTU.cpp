@@ -213,7 +213,7 @@ std::vector<std::vector<uint8_t>> LCDA630P_Modbus_RTU::test_one_rotation(uint8_t
     frame.push_back(0x00);
     frame.push_back(0x00);
     frame.push_back(0x38);
-    frame.push_back(0xD8);
+    frame.push_back(0xDB);
     list_of_commands.push_back(frame); 
 #if DEBUG_SERIAL
     for (int i = 0; i < frame.size(); i++)
@@ -263,6 +263,22 @@ std::vector<std::vector<uint8_t>> LCDA630P_Modbus_RTU::test_one_rotation(uint8_t
     DEBUG_SERIAL_PRINTLN("");
 #endif              
     return list_of_commands ;
+}
+std::string LCDA630P_Modbus_RTU::vector_to_string(std::vector<uint8_t> frame)
+{
+    // Convert uint16_t array to string
+    std::string request_string = "";
+    int size_of_frame = 8;
+    if (frame[1] == 0x06)
+        size_of_frame = 8;
+    else if (frame[1] == 0x10)
+        size_of_frame = 13;
+
+    for (int i = 0; i < size_of_frame ; i++)
+    {
+        request_string += static_cast<char>(frame[i]);        // Get low byte
+    }
+    return request_string ;
 }
 std::pair<int, int> LCDA630P_Modbus_RTU::parseModbusResponse(const std::vector<uint8_t> &response)
 {
