@@ -24,9 +24,11 @@ class LCDA630P_Modbus_RTU
         std::vector<uint8_t> write_parameter(uint8_t slave_id, uint8_t group_number, uint8_t parameter_offset, uint16_t value);
         std::vector<uint8_t> write_parameter_32(uint8_t slave_id, uint8_t group_number, uint8_t parameter_offset, uint32_t value);        
         std::vector<std::vector<uint8_t>>  read_servo_brief(uint8_t slave_id);
-        std::vector<std::vector<uint8_t>>  test_one_rotation(uint8_t slave_id);
+        std::vector<std::vector<uint8_t>>  raw_one_rotation(uint8_t slave_id);
+        std::vector<std::vector<uint8_t>>  move_to_position(uint8_t slave_id, u_int32_t position);
+        std::vector<std::vector<uint8_t>>  config_for_modbus_control(uint8_t slave_id);
         std::string vector_to_string(std::vector<uint8_t>);
-        std::pair<int, int> parseModbusResponse(const std::vector<uint8_t>& response) ;
+        uint32_t parseModbusResponse(const std::vector<uint8_t>& response) ;
         uint16_t crcValueCalc(const uint8_t *data, uint16_t length);
 
 };

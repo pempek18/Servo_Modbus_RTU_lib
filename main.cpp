@@ -15,23 +15,52 @@ int main()
     {
         std::string param_s = servo.vector_to_string(param);
         std::vector<uint8_t> feedback =  send(param_s);
-        std::pair<int,int> response = servo.parseModbusResponse(feedback) ;
+        uint32_t response = servo.parseModbusResponse(feedback) ;
     }
     std::cout << "*****************Read Brief*****************" << std::endl;
     std::cout << "*****************Read P0C-26*****************" << std::endl;
     std::vector<uint8_t> p0c_26 = servo.read_parameter(1,12,26,2);
     std::string p0c_26_s = servo.vector_to_string(p0c_26);
     std::vector<uint8_t> p0c_26_r = send(p0c_26_s);
-    std::pair<int,int> p0c_26_f = servo.parseModbusResponse(p0c_26_r);
+    uint32_t p0c_26_f = servo.parseModbusResponse(p0c_26_r);
     std::cout << "*****************Read P0C-26*****************" << std::endl;
     std::cout << "*****************Move one rotation*****************" << std::endl;
-    std::vector<std::vector<uint8_t>> one_rot = servo.test_one_rotation(1);
+    std::vector<std::vector<uint8_t>> one_rot_raw = servo.raw_one_rotation(1);
+    for (std::vector<uint8_t> param : one_rot_raw)
+    {
+        std::string param_s = servo.vector_to_string(param);
+        servo.parseModbusResponse(param);
+        // send(param_s);
+    }
+    std::cout << "*****************Move one rotation*****************" << std::endl;
+    std::cout << "*****************Read P05-00*****************" << std::endl;
+    std::vector<uint8_t> p05_00 = servo.read_parameter(1,5,0,2);
+    std::string p05_00_S = servo.vector_to_string(p05_00);
+    std::vector<uint8_t> p05_00_v = send(p05_00_S);
+    uint32_t p05_00_value = servo.parseModbusResponse(p05_00_v);
+    std::cout << "*****************Read P05-00*****************" << std::endl;    
+    if (p05_00_value != 2 )
+    {
+        std::cout << "*****************Config for modbus control*****************" << std::endl;
+        std::vector<std::vector<uint8_t>> config = servo.config_for_modbus_control(1);
+        for (std::vector<uint8_t> param : config)
+        {
+            std::string param_s = servo.vector_to_string(param);
+            servo.parseModbusResponse(param);
+            send(param_s);
+        }  
+        std::cout << "*****************Config for modbus control*****************" << std::endl;        
+    }
+    std::cout << "*****************Move to pos*****************" << std::endl;
+    std::vector<std::vector<uint8_t>> one_rot = servo.move_to_position(1, 100000);
     for (std::vector<uint8_t> param : one_rot)
     {
         std::string param_s = servo.vector_to_string(param);
+        servo.parseModbusResponse(param);
         send(param_s);
-    }
-    std::cout << "*****************Move one rotation*****************" << std::endl;
+    }    
+
+    std::cout << "*****************Move to pos*****************" << std::endl;
     return 0;
 }
 std::vector<uint8_t> send(std::string request)
