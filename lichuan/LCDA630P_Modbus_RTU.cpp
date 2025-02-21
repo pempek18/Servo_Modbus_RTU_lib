@@ -7,17 +7,29 @@ LCDA630P_Modbus_RTU::LCDA630P_Modbus_RTU()
 void LCDA630P_Modbus_RTU::scan_devices()
 {
     DEBUG_SERIAL_PRINTLN("Scanning devices");
+};
+void LCDA630P_Modbus_RTU::debug_print_frame(std::vector<uint8_t> frame, bool print)
+{
+    if (print)
+    {
+        for (int i = 0; i < frame.size(); i++)
+        {
+            std::stringstream ss;
+            ss << "0x" << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(frame[i]) << " ";
+            DEBUG_SERIAL_PRINT(ss.str());
+        }
+        DEBUG_SERIAL_PRINTLN("");
+    }
 }
-
-std::vector<uint8_t> LCDA630P_Modbus_RTU::read_parameter(uint8_t slave_id, uint8_t group_number, uint8_t parameter_offset, uint16_t function_code_number)
+std::vector<uint8_t> LCDA630P_Modbus_RTU::read_parameter(uint8_t slave_id, uint8_t group_number, uint8_t parameter_offset)
 {
     std::vector<uint8_t> frame;
     frame.push_back(slave_id); // ADR
     frame.push_back(0x03);     // Read Holding Register
     frame.push_back(group_number);
     frame.push_back(parameter_offset);
-    frame.push_back(function_code_number >> 8);
-    frame.push_back(function_code_number & 0xFF);
+    frame.push_back(0 >> 8);
+    frame.push_back(2 & 0xFF);
 
     // Calculate CRC using uint8_t data
     uint16_t crc = crcValueCalc(frame.data(), frame.size());
@@ -60,20 +72,29 @@ std::vector<uint8_t> LCDA630P_Modbus_RTU::write_parameter(uint8_t slave_id, uint
 #endif
     return frame;
 };
-std::vector<uint8_t> LCDA630P_Modbus_RTU::write_parameter_32(uint8_t slave_id, uint8_t group_number, uint8_t parameter_offset, uint32_t value)
+std::vector<uint8_t> LCDA630P_Modbus_RTU::write_parameter_32(uint8_t slave_id, uint8_t group_number, uint8_t parameter_offset, int32_t value)
 {
     std::vector<uint8_t> frame;
     frame.push_back(slave_id); // ADR
     frame.push_back(0x10);     // Write Holding Register
     frame.push_back(group_number);
     frame.push_back(parameter_offset);
-    frame.push_back(0x00);
-    frame.push_back(0x02);
-    frame.push_back(0x04);
-    frame.push_back((value >> 8) & 0xFF);
-    frame.push_back(value & 0xFF);
-    frame.push_back((value >> 16) & 0xFF);
-    frame.push_back((value >> 24) & 0xFF);
+    frame.push_back(0x00); //The high 8 bits of the function code are M(H), and the length of a 32-bit function code is 2.
+    frame.push_back(0x02); //Function code number lower 8 digits M(L)
+    frame.push_back(0x04); //The number of function codes corresponds ti the number of bytes M*2. For examole, if P05-07 is written alone, DATA[4] is P04
+    if (lower16_bit_first)
+    {
+        frame.push_back((value >> 8) & 0xFF); //Write the high 8 bits of the start function code, hex
+        frame.push_back(value & 0xFF); //Write the lower 8 bits of the start function code, hex
+        frame.push_back((value >> 24) & 0xFF);//Write the high 8 bits of the start function code group offset + 1, hex
+        frame.push_back((value >> 16) & 0xFF);//Write the low 8 bits of the start function code group offset + 1, hex
+    }else
+    {
+        frame.push_back((value >> 24) & 0xFF);//Write the high 8 bits of the start function code group offset + 1, hex
+        frame.push_back((value >> 16) & 0xFF);//Write the low 8 bits of the start function code group offset + 1, hex 
+        frame.push_back((value >> 8) & 0xFF); //Write the high 8 bits of the start function code, hex
+        frame.push_back(value & 0xFF); //Write the lower 8 bits of the start function code, hex
+    }
     // Calculate CRC using uint8_t data
     uint16_t crc = crcValueCalc(frame.data(), frame.size());
     frame.push_back(crc & 0xFF);        // Low byte
@@ -92,15 +113,15 @@ std::vector<uint8_t> LCDA630P_Modbus_RTU::write_parameter_32(uint8_t slave_id, u
 std::vector<std::vector<uint8_t>> LCDA630P_Modbus_RTU::read_servo_brief(uint8_t slave_id)
 {
     std::vector<std::vector<uint8_t>> list_of_commands;
-    list_of_commands.push_back(read_parameter(slave_id, 0, 0, 2));
-    list_of_commands.push_back(read_parameter(slave_id, 0, 9, 2));
-    list_of_commands.push_back(read_parameter(slave_id, 0, 10, 2));
-    list_of_commands.push_back(read_parameter(slave_id, 0, 11, 2));
-    list_of_commands.push_back(read_parameter(slave_id, 0, 12, 2));
-    list_of_commands.push_back(read_parameter(slave_id, 0, 13, 2));
-    list_of_commands.push_back(read_parameter(slave_id, 0, 14, 2));
-    list_of_commands.push_back(read_parameter(slave_id, 0, 15, 2));
-    list_of_commands.push_back(read_parameter(slave_id, 0, 28, 2));
+    list_of_commands.push_back(read_parameter(slave_id, 0, 0));
+    list_of_commands.push_back(read_parameter(slave_id, 0, 9));
+    list_of_commands.push_back(read_parameter(slave_id, 0, 10));
+    list_of_commands.push_back(read_parameter(slave_id, 0, 11));
+    list_of_commands.push_back(read_parameter(slave_id, 0, 12));
+    list_of_commands.push_back(read_parameter(slave_id, 0, 13));
+    list_of_commands.push_back(read_parameter(slave_id, 0, 14));
+    list_of_commands.push_back(read_parameter(slave_id, 0, 15));
+    list_of_commands.push_back(read_parameter(slave_id, 0, 28));
     return list_of_commands;
 }
 std::vector<std::vector<uint8_t>> LCDA630P_Modbus_RTU::raw_one_rotation(uint8_t slave_id)
@@ -268,7 +289,7 @@ std::vector<std::vector<uint8_t>> LCDA630P_Modbus_RTU::raw_one_rotation(uint8_t 
 std::vector<std::vector<uint8_t>> LCDA630P_Modbus_RTU::move_to_position(uint8_t slave_id, u_int32_t position)
 {
     std::vector<std::vector<uint8_t>> list_of_commands ;
-    list_of_commands.push_back(write_parameter_32(1,0x11,0xC,position));//Multi-segment location operation mode Sequential operation (P11-01 for selection of segment number)
+    list_of_commands.push_back(write_parameter_32(1,0x11,0x0C,position));//Multi-segment location operation mode Sequential operation (P11-01 for selection of segment number)
     list_of_commands.push_back(write_parameter(1,0x31,0,1));//Communication given VDI virtual level 0～65535
     list_of_commands.push_back(write_parameter(1,0x31,0,3));//Communication given VDI virtual level 0～65535
     return list_of_commands;
@@ -287,13 +308,8 @@ std::string LCDA630P_Modbus_RTU::vector_to_string(std::vector<uint8_t> frame)
 {
     // Convert uint16_t array to string
     std::string request_string = "";
-    int size_of_frame = 8;
-    if (frame[1] == 0x06)
-        size_of_frame = 8;
-    else if (frame[1] == 0x10)
-        size_of_frame = 13;
 
-    for (int i = 0; i < size_of_frame ; i++)
+    for (int i = 0; i < frame.size() ; i++)
     {
         request_string += static_cast<char>(frame[i]);        // Get low byte
     }
@@ -306,10 +322,14 @@ uint32_t LCDA630P_Modbus_RTU::parseModbusResponse(const std::vector<uint8_t> &re
     }
     // Extract first word (0x2d15)
     uint32_t value = 0;
-    if (response.size() > 8 )
-        value = (response[8] << 0) | (response[7] << 8) | (response[9] << 16) | (response[10] << 24 );
-    else 
-        value = (response[5] << 8) | response[4];
+    if (lower16_bit_first && response.size() > 8 )
+        value =  (response[7] << 8) | (response[8] << 0) | (response[9] << 24) | (response[10] << 16 );
+    else if (lower16_bit_first)
+        value = (response[4] << 8) | response[5];
+    else if (!lower16_bit_first && response.size() > 8 )
+        value =  (response[9] << 8) | (response[10] << 0) | (response[7] << 24) | (response[8] << 16 );
+    else if (!lower16_bit_first)
+        value = (response[6] << 8) | response[7];        
 #if DEBUG_SERIAL or true
     std::stringstream ss ;
     ss << std::hex << std::setfill('0') << std::setw(2) << "adr: " << static_cast<int>(response[0]) << "\tf :" << 
