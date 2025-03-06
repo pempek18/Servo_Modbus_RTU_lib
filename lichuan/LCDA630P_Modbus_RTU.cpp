@@ -48,6 +48,37 @@ std::vector<uint8_t> LCDA630P_Modbus_RTU::read_parameter(uint8_t slave_id, uint8
 #endif
     return frame;
 }
+std::vector<uint8_t> LCDA630P_Modbus_RTU::read_parameter(uint8_t slave_id, uint8_t group_number, uint8_t parameter_offset, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction)
+{
+    std::vector<uint8_t> frame;
+    frame.push_back(slave_id); // ADR
+    frame.push_back(0x03);     // Read Holding Register
+    frame.push_back(group_number);
+    frame.push_back(parameter_offset);
+    frame.push_back(0 >> 8);
+    frame.push_back(2 & 0xFF);
+
+    // Calculate CRC using uint8_t data
+    uint16_t crc = crcValueCalc(frame.data(), frame.size());
+    frame.push_back(crc & 0xFF);        // Low byte
+    frame.push_back((crc >> 8) & 0xFF); // High byte
+
+#if DEBUG_SERIAL
+    for (int i = 0; i < frame.size(); i++)
+    {
+        std::stringstream ss;
+        ss << "0x" << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(frame[i]) << " ";
+        DEBUG_SERIAL_PRINT(ss.str());
+    }
+    DEBUG_SERIAL_PRINTLN("");
+#endif
+
+    std::vector<uint32_t> values ;
+    std::vector<uint8_t> feedback = sendFunction(frame) ;
+    uint32_t response = parseModbusResponse(feedback) ; 
+    values.push_back(response);
+    return frame;
+}
 std::vector<uint8_t> LCDA630P_Modbus_RTU::write_parameter(uint8_t slave_id, uint8_t group_number, uint8_t parameter_offset, uint16_t value)
 {
     std::vector<uint8_t> frame;
@@ -312,7 +343,7 @@ std::vector<std::vector<uint8_t>> LCDA630P_Modbus_RTU::raw_one_rotation(uint8_t 
     DEBUG_SERIAL_PRINTLN("*****************Move one rotation RAW DATA*****************");
     return list_of_commands ;
 }
-std::vector<std::vector<uint8_t>> LCDA630P_Modbus_RTU::move_to_position(uint8_t slave_id, u_int32_t position, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction)
+std::vector<std::vector<uint8_t>> LCDA630P_Modbus_RTU::move_to_position(uint8_t slave_id, int32_t position, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction)
 {
     std::vector<std::vector<uint8_t>> list_of_commands ;
     if (!controlOverModbus)

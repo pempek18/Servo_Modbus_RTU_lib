@@ -1,3 +1,0 @@
-[submodule "external/Modbus"]
-	path = external/Modbus
-	url = https://github.com/Mazurel/Modbus

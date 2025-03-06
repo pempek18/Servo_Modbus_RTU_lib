@@ -7,21 +7,83 @@ void send_request_over_serial(std::string request);
 std::vector<uint8_t> send(std::string request, bool print=false);
 std::vector<uint8_t> send_wrapper(const std::vector<uint8_t>& request) ;
 void read_with_timeout(boost::asio::io_context &io, boost::asio::serial_port &serial, std::vector<uint8_t> &response_vector, int timeout_ms) ;
+std::vector<std::string> splitString(const std::string& str, char delimiter) {
+    std::vector<std::string> tokens;
+    std::stringstream ss(str);
+    std::string token;
 
+    while (std::getline(ss, token, delimiter)) {
+        tokens.push_back(token);
+    }
+
+    return tokens;
+}
 
 int main()
 {
     LCDA630P_Modbus_RTU servo;
     servo.scan_devices();
-    std::vector<std::vector<uint8_t>> params = servo.read_servo_brief(1, send_wrapper);
-    std::vector<std::vector<uint8_t>> config = servo.config_for_modbus_control(1, send_wrapper);
-    std::vector<std::vector<uint8_t>> one_rot = servo.move_to_position(1, -700000, send_wrapper); 
-    std::cout << "*****************Disable*****************" << std::endl;
-    std::cout << "press any key to disable" << std::endl;
-    std::cin.get() ;
-    std::vector<uint8_t> disable = servo.write_parameter(1,0x31,0,0);
-    send_wrapper(disable);
-    std::cout << "*****************Disable*****************" << std::endl;
+    char mode ;
+    std::string s ; 
+    while (true)
+    {
+        std::cout << "choose what what to do: r[read], w[write], m[move], d[disable], q[quit]" << std::endl ; 
+        std::cin >> mode ; 
+        switch (mode)
+        {
+        case 'b':
+        {
+            std::vector<std::vector<uint8_t>> params = servo.read_servo_brief(1, send_wrapper);
+        }
+        case 'r':
+        {
+            std::cout << "*****************Read Param*****************" << std::endl;
+            int paramGroup, paramOffset ; 
+            std::cout << "Type Group Parameter and Offset in format GROUP,OFFSET" << std::endl ;
+            std::cin >> s ;
+            std::vector<std::string> params = splitString(s, ',');
+            paramGroup = std::stoi(params[0]);
+            paramOffset = std::stoi(params[1]);
+            servo.read_parameter(1, paramGroup, paramOffset, send_wrapper);
+            std::cout << "*****************Read Param*****************" << std::endl;  
+            break; 
+        }
+        case 'w':
+        {
+            std::cout << "*****************Write Param*****************" << std::endl;
+            //need to implement
+            // int paramGroup, paramOffset ; 
+            // std::cout << "Type Group Parameter, Offset and value in format GROUP,OFFSET,VALUE" << std::endl ;
+            // std::cin >> s ;
+            // std::vector<std::string> params = splitString(s, ',');
+            // paramGroup = std::stoi(params[0]);
+            // paramOffset = std::stoi(params[1]);
+            // servo.write_parameter(1, paramGroup, paramOffset, send_wrapper);
+            std::cout << "*****************Write Param*****************" << std::endl;  
+            break; 
+        }
+        case 'm' :
+        {
+            std::cout << "Type position to move or q to quit" << std::endl ;
+            std::cin >> s ;      
+            int32_t position = std::stoi(s);  
+            std::vector<std::vector<uint8_t>> config = servo.config_for_modbus_control(1, send_wrapper);
+            std::vector<std::vector<uint8_t>> one_rot = servo.move_to_position(1, position, send_wrapper);  
+        }           
+            break;
+        case 'd' :
+        {
+            std::cout << "*****************Disable*****************" << std::endl;
+            std::vector<uint8_t> disable = servo.write_parameter(1,0x31,0,0);
+            send_wrapper(disable);
+            std::cout << "*****************Disable*****************" << std::endl; 
+        }
+        case 'q' :        
+           return 0 ;
+        default:
+            break;
+        } 
+    } 
     return 0;
 }
 
