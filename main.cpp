@@ -27,13 +27,14 @@ int main()
     std::string s ; 
     while (true)
     {
-        std::cout << "choose what what to do: r[read], w[write], m[move], d[disable], q[quit]" << std::endl ; 
+        std::cout << "choose what what to do: r[read], w[write], m[move], s[speed], d[disable], q[quit]" << std::endl ; 
         std::cin >> mode ; 
         switch (mode)
         {
         case 'b':
         {
             std::vector<std::vector<uint8_t>> params = servo.read_servo_brief(1, send_wrapper);
+            break;
         }
         case 'r':
         {
@@ -51,14 +52,23 @@ int main()
         case 'w':
         {
             std::cout << "*****************Write Param*****************" << std::endl;
-            //need to implement
-            // int paramGroup, paramOffset ; 
-            // std::cout << "Type Group Parameter, Offset and value in format GROUP,OFFSET,VALUE" << std::endl ;
-            // std::cin >> s ;
-            // std::vector<std::string> params = splitString(s, ',');
-            // paramGroup = std::stoi(params[0]);
-            // paramOffset = std::stoi(params[1]);
-            // servo.write_parameter(1, paramGroup, paramOffset, send_wrapper);
+            int paramGroup, paramOffset ;
+            int32_t value ;  
+            std::cout << "Type Group Parameter, Offset and value in format GROUP,OFFSET,VALUE" << std::endl ;
+            std::cin >> s ;
+            std::vector<std::string> params = splitString(s, ',');
+            if (params.size() < 3 )
+            {
+                std::cerr << "type at least 3 values, typed: " << params.size() << std::endl ;
+                break;
+            }
+            paramGroup = std::stoi(params[0]);
+            paramOffset = std::stoi(params[1]);
+            value = std::stoi(params[2]);
+            if (abs(value) > 65535)
+                servo.write_parameter_32(1, paramGroup, paramOffset, value, send_wrapper);
+            else
+                servo.write_parameter(1, paramGroup, paramOffset, value, send_wrapper);
             std::cout << "*****************Write Param*****************" << std::endl;  
             break; 
         }
@@ -67,16 +77,26 @@ int main()
             std::cout << "Type position to move or q to quit" << std::endl ;
             std::cin >> s ;      
             int32_t position = std::stoi(s);  
-            std::vector<std::vector<uint8_t>> config = servo.config_for_modbus_control(1, send_wrapper);
+            std::vector<std::vector<uint8_t>> config = servo.config_for_modbus_control_position(1, send_wrapper);
             std::vector<std::vector<uint8_t>> one_rot = servo.move_to_position(1, position, send_wrapper);  
-        }           
             break;
+        }           
+        case 's' :
+        {
+            std::cout << "Type position to move or q to quit" << std::endl ;
+            std::cin >> s ;      
+            int32_t position = std::stoi(s);  
+            std::vector<std::vector<uint8_t>> config = servo.config_for_modbus_control_speed(1, send_wrapper);
+            std::vector<std::vector<uint8_t>> one_rot = servo.speed_command(1, position, send_wrapper);  
+            break;
+        }         
         case 'd' :
         {
             std::cout << "*****************Disable*****************" << std::endl;
             std::vector<uint8_t> disable = servo.write_parameter(1,0x31,0,0);
             send_wrapper(disable);
             std::cout << "*****************Disable*****************" << std::endl; 
+            break;
         }
         case 'q' :        
            return 0 ;

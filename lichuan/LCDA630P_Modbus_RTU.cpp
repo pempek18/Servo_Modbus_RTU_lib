@@ -79,7 +79,7 @@ std::vector<uint8_t> LCDA630P_Modbus_RTU::read_parameter(uint8_t slave_id, uint8
     values.push_back(response);
     return frame;
 }
-std::vector<uint8_t> LCDA630P_Modbus_RTU::write_parameter(uint8_t slave_id, uint8_t group_number, uint8_t parameter_offset, uint16_t value)
+std::vector<uint8_t> LCDA630P_Modbus_RTU::write_parameter(uint8_t slave_id, uint8_t group_number, uint8_t parameter_offset, int16_t value)
 {
     std::vector<uint8_t> frame;
     frame.push_back(slave_id); // ADR
@@ -102,6 +102,36 @@ std::vector<uint8_t> LCDA630P_Modbus_RTU::write_parameter(uint8_t slave_id, uint
     }
     DEBUG_SERIAL_PRINTLN("");
 #endif
+    return frame;
+};
+std::vector<uint8_t> LCDA630P_Modbus_RTU::write_parameter(uint8_t slave_id, uint8_t group_number, uint8_t parameter_offset, int16_t value, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction)
+{
+    std::vector<uint8_t> frame;
+    frame.push_back(slave_id); // ADR
+    frame.push_back(0x06);     // Write Holding Register
+    frame.push_back(group_number);
+    frame.push_back(parameter_offset);
+    frame.push_back(value >> 8);
+    frame.push_back(value & 0xFF);
+
+    // Calculate CRC using uint8_t data
+    uint16_t crc = crcValueCalc(frame.data(), frame.size());
+    frame.push_back(crc & 0xFF);        // Low byte
+    frame.push_back((crc >> 8) & 0xFF); // High byte
+#if DEBUG_SERIAL
+    for (int i = 0; i < frame.size(); i++)
+    {
+        std::stringstream ss;
+        ss << "0x" << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(frame[i]) << " ";
+        DEBUG_SERIAL_PRINT(ss.str());
+    }
+    DEBUG_SERIAL_PRINTLN("");
+#endif
+
+    std::vector<uint32_t> values ;
+    std::vector<uint8_t> feedback = sendFunction(frame) ;
+    uint32_t response = parseModbusResponse(feedback) ; 
+    values.push_back(response);
     return frame;
 };
 std::vector<uint8_t> LCDA630P_Modbus_RTU::write_parameter_32(uint8_t slave_id, uint8_t group_number, uint8_t parameter_offset, int32_t value)
@@ -140,6 +170,50 @@ std::vector<uint8_t> LCDA630P_Modbus_RTU::write_parameter_32(uint8_t slave_id, u
     }
     DEBUG_SERIAL_PRINTLN("");
 #endif
+    return frame;    
+}
+std::vector<uint8_t> LCDA630P_Modbus_RTU::write_parameter_32(uint8_t slave_id, uint8_t group_number, uint8_t parameter_offset, int32_t value, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction)
+{
+    std::vector<uint8_t> frame;
+    frame.push_back(slave_id); // ADR
+    frame.push_back(0x10);     // Write Holding Register
+    frame.push_back(group_number);
+    frame.push_back(parameter_offset);
+    frame.push_back(0x00); //The high 8 bits of the function code are M(H), and the length of a 32-bit function code is 2.
+    frame.push_back(0x02); //Function code number lower 8 digits M(L)
+    frame.push_back(0x04); //The number of function codes corresponds ti the number of bytes M*2. For examole, if P05-07 is written alone, DATA[4] is P04
+    if (lower16_bit_first)
+    {
+        frame.push_back((value >> 8) & 0xFF); //Write the high 8 bits of the start function code, hex
+        frame.push_back(value & 0xFF); //Write the lower 8 bits of the start function code, hex
+        frame.push_back((value >> 24) & 0xFF);//Write the high 8 bits of the start function code group offset + 1, hex
+        frame.push_back((value >> 16) & 0xFF);//Write the low 8 bits of the start function code group offset + 1, hex
+    }else
+    {
+        frame.push_back((value >> 24) & 0xFF);//Write the high 8 bits of the start function code group offset + 1, hex
+        frame.push_back((value >> 16) & 0xFF);//Write the low 8 bits of the start function code group offset + 1, hex 
+        frame.push_back((value >> 8) & 0xFF); //Write the high 8 bits of the start function code, hex
+        frame.push_back(value & 0xFF); //Write the lower 8 bits of the start function code, hex
+    }
+    // Calculate CRC using uint8_t data
+    uint16_t crc = crcValueCalc(frame.data(), frame.size());
+    frame.push_back(crc & 0xFF);        // Low byte
+    frame.push_back((crc >> 8) & 0xFF); // High byte
+#if DEBUG_SERIAL
+    for (int i = 0; i < frame.size(); i++)
+    {
+        std::stringstream ss;
+        ss << "0x" << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(frame[i]) << " ";
+        DEBUG_SERIAL_PRINT(ss.str());
+    }
+    DEBUG_SERIAL_PRINTLN("");
+#endif
+
+    std::vector<uint32_t> values ;
+    std::vector<uint8_t> feedback = sendFunction(frame) ;
+    uint32_t response = parseModbusResponse(feedback) ; 
+    values.push_back(response);
+
     return frame;    
 }
 std::vector<std::vector<uint8_t>> LCDA630P_Modbus_RTU::read_servo_brief(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction)
@@ -360,7 +434,27 @@ std::vector<std::vector<uint8_t>> LCDA630P_Modbus_RTU::move_to_position(uint8_t 
     DEBUG_SERIAL_PRINTLN("*****************Move to pos*****************");
     return list_of_commands;
 }
-std::vector<std::vector<uint8_t>> LCDA630P_Modbus_RTU::config_for_modbus_control(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction)
+std::vector<std::vector<uint8_t>> LCDA630P_Modbus_RTU::speed_command(uint8_t slave_id, int32_t speed, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction)
+{
+    std::vector<std::vector<uint8_t>> list_of_commands ;
+    if (!controlOverModbus)
+        return list_of_commands;
+    list_of_commands.push_back(write_parameter(1,0x06,0x03,speed));//Multi-segment location operation mode Sequential operation (P11-01 for selection of segment number)
+    list_of_commands.push_back(write_parameter(1,0x06,0x04,std::abs(speed)));//Multi-segment location operation mode Sequential operation (P11-01 for selection of segment number)
+    list_of_commands.push_back(write_parameter(1,0x31,9,speed));//ommunication Given Speed Command
+    list_of_commands.push_back(write_parameter(1,0x31,0,1));//Communication given VDI virtual level 0～65535 16 bit input register 
+    list_of_commands.push_back(write_parameter(1,0x31,0,3));//Communication given VDI virtual level 0～65535 16 bit input register
+    list_of_commands.push_back(write_parameter(1,0x31,0,8));//Communication given VDI virtual level 0～65535 16 bit input register
+    DEBUG_SERIAL_PRINTLN("*****************Move to pos*****************");
+    for (std::vector<uint8_t> command : list_of_commands)
+    {
+        std::vector<uint8_t> recive = sendFunction(command) ;
+        parseModbusResponse(recive);
+    }
+    DEBUG_SERIAL_PRINTLN("*****************Move to pos*****************");
+    return list_of_commands;
+}
+std::vector<std::vector<uint8_t>> LCDA630P_Modbus_RTU::config_for_modbus_control_position(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction)
 {
     std::vector<std::vector<uint8_t>> list_of_commands ;
     if (controlOverModbus)
@@ -368,7 +462,27 @@ std::vector<std::vector<uint8_t>> LCDA630P_Modbus_RTU::config_for_modbus_control
     list_of_commands.push_back(write_parameter(1,0x17,0,1));//VDI1 Terminal function selection
     list_of_commands.push_back(write_parameter(1,0x17,2,28));//VDI2 Terminal function selection
     list_of_commands.push_back(write_parameter(1,0x2,0,1));//Control Mode Selectio 1: position mod
-    list_of_commands.push_back(write_parameter(1,0x5,0,2));//Location instruction source multi-segment position instruction give
+    list_of_commands.push_back(write_parameter(1,0x5,2,10000));//Location instruction source multi-segment position instruction give
+    list_of_commands.push_back(write_parameter(1,0x11,0,3));//Multi-segment location operation mode Sequential operation (P11-01 for selection of segment number)
+    DEBUG_SERIAL_PRINTLN("*****************Config for modbus control*****************");
+    for (std::vector<uint8_t> command : list_of_commands)
+        sendFunction(command) ;
+    DEBUG_SERIAL_PRINTLN("*****************Config for modbus control*****************");
+    return list_of_commands;
+}
+std::vector<std::vector<uint8_t>> LCDA630P_Modbus_RTU::config_for_modbus_control_speed(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction)
+{
+    std::vector<std::vector<uint8_t>> list_of_commands ;
+    if (controlOverModbus)
+        return list_of_commands ;
+    list_of_commands.push_back(write_parameter(1,0x17,0,1));//VDI1 Terminal function selection
+    list_of_commands.push_back(write_parameter(1,0x17,2,28));//VDI2 Terminal function selection
+    list_of_commands.push_back(write_parameter(1,0x17,3,26));//VDI3 Terminal function selection
+    list_of_commands.push_back(write_parameter(1,0x2,0,0));//Control Mode Selectio 0: speed mod
+    list_of_commands.push_back(write_parameter(1,0x3,80,1));//Control Mode Selectio 0: speed mod
+    list_of_commands.push_back(write_parameter(1,0x6,0,0));//Location instruction source multi-segment position instruction give
+    list_of_commands.push_back(write_parameter(1,0x6,1,5));//Location instruction source multi-segment position instruction give
+    list_of_commands.push_back(write_parameter(1,0x6,2,0));//Location instruction source multi-segment position instruction give
     list_of_commands.push_back(write_parameter(1,0x11,0,3));//Multi-segment location operation mode Sequential operation (P11-01 for selection of segment number)
     DEBUG_SERIAL_PRINTLN("*****************Config for modbus control*****************");
     for (std::vector<uint8_t> command : list_of_commands)
