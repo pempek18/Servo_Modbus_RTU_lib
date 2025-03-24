@@ -439,31 +439,31 @@ std::vector<std::vector<uint8_t>> LCDA630P_Modbus_RTU::speed_command(uint8_t sla
     std::vector<std::vector<uint8_t>> list_of_commands ;
     if (!controlOverModbus)
         return list_of_commands;
-    list_of_commands.push_back(write_parameter(1,0x06,0x03,speed));//Multi-segment location operation mode Sequential operation (P11-01 for selection of segment number)
-    list_of_commands.push_back(write_parameter(1,0x06,0x04,std::abs(speed)));//Multi-segment location operation mode Sequential operation (P11-01 for selection of segment number)
-    list_of_commands.push_back(write_parameter(1,0x31,9,speed));//ommunication Given Speed Command
+    list_of_commands.push_back(write_parameter(1,0x2,0,0));//Control Mode Selectio 0: speed mod
+    list_of_commands.push_back(write_parameter(1,0x17,0,1));//VDI1 Terminal function selection
     list_of_commands.push_back(write_parameter(1,0x31,0,1));//Communication given VDI virtual level 0～65535 16 bit input register 
-    list_of_commands.push_back(write_parameter(1,0x31,0,3));//Communication given VDI virtual level 0～65535 16 bit input register
-    list_of_commands.push_back(write_parameter(1,0x31,0,8));//Communication given VDI virtual level 0～65535 16 bit input register
-    DEBUG_SERIAL_PRINTLN("*****************Move to pos*****************");
+    list_of_commands.push_back(write_parameter(1,0x06,0x03,speed));//Multi-segment location operation mode Sequential operation (P11-01 for selection of segment number)
+    DEBUG_SERIAL_PRINTLN("*****************Rotate with speed*****************");
     for (std::vector<uint8_t> command : list_of_commands)
     {
         std::vector<uint8_t> recive = sendFunction(command) ;
         parseModbusResponse(recive);
     }
-    DEBUG_SERIAL_PRINTLN("*****************Move to pos*****************");
+    DEBUG_SERIAL_PRINTLN("*****************Rotate with speed*****************");
     return list_of_commands;
 }
 std::vector<std::vector<uint8_t>> LCDA630P_Modbus_RTU::config_for_modbus_control_position(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction)
 {
     std::vector<std::vector<uint8_t>> list_of_commands ;
-    if (controlOverModbus)
+    if (controlOverModbus && eControlMode == Position)
         return list_of_commands ;
     list_of_commands.push_back(write_parameter(1,0x17,0,1));//VDI1 Terminal function selection
     list_of_commands.push_back(write_parameter(1,0x17,2,28));//VDI2 Terminal function selection
     list_of_commands.push_back(write_parameter(1,0x2,0,1));//Control Mode Selectio 1: position mod
+    list_of_commands.push_back(write_parameter(1,0x5,0,2));//Control Mode Selectio 1: position mod
     list_of_commands.push_back(write_parameter(1,0x5,2,10000));//Location instruction source multi-segment position instruction give
-    list_of_commands.push_back(write_parameter(1,0x11,0,3));//Multi-segment location operation mode Sequential operation (P11-01 for selection of segment number)
+    list_of_commands.push_back(write_parameter(1,0x11,0,2));//Multi-segment location operation mode Sequential operation (P11-01 for selection of segment number)
+    eControlMode = Position ; 
     DEBUG_SERIAL_PRINTLN("*****************Config for modbus control*****************");
     for (std::vector<uint8_t> command : list_of_commands)
         sendFunction(command) ;
@@ -473,17 +473,17 @@ std::vector<std::vector<uint8_t>> LCDA630P_Modbus_RTU::config_for_modbus_control
 std::vector<std::vector<uint8_t>> LCDA630P_Modbus_RTU::config_for_modbus_control_speed(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction)
 {
     std::vector<std::vector<uint8_t>> list_of_commands ;
-    if (controlOverModbus)
+    if (controlOverModbus && eControlMode == Speed)
         return list_of_commands ;
     list_of_commands.push_back(write_parameter(1,0x17,0,1));//VDI1 Terminal function selection
     list_of_commands.push_back(write_parameter(1,0x17,2,28));//VDI2 Terminal function selection
     list_of_commands.push_back(write_parameter(1,0x17,3,26));//VDI3 Terminal function selection
     list_of_commands.push_back(write_parameter(1,0x2,0,0));//Control Mode Selectio 0: speed mod
-    list_of_commands.push_back(write_parameter(1,0x3,80,1));//Control Mode Selectio 0: speed mod
     list_of_commands.push_back(write_parameter(1,0x6,0,0));//Location instruction source multi-segment position instruction give
     list_of_commands.push_back(write_parameter(1,0x6,1,5));//Location instruction source multi-segment position instruction give
     list_of_commands.push_back(write_parameter(1,0x6,2,0));//Location instruction source multi-segment position instruction give
     list_of_commands.push_back(write_parameter(1,0x11,0,3));//Multi-segment location operation mode Sequential operation (P11-01 for selection of segment number)
+    eControlMode = Speed ; 
     DEBUG_SERIAL_PRINTLN("*****************Config for modbus control*****************");
     for (std::vector<uint8_t> command : list_of_commands)
         sendFunction(command) ;

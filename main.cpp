@@ -83,7 +83,7 @@ int main()
         }           
         case 's' :
         {
-            std::cout << "Type position to move or q to quit" << std::endl ;
+            std::cout << "Type speed value or q to quit" << std::endl ;
             std::cin >> s ;      
             int32_t position = std::stoi(s);  
             std::vector<std::vector<uint8_t>> config = servo.config_for_modbus_control_speed(1, send_wrapper);

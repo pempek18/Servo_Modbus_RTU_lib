@@ -16,6 +16,18 @@
 #include <iomanip>
 #include <sstream>
 #include <functional>
+
+enum servomode 
+{
+    Speed,
+    Position,
+    Torque,
+    TorqueSpeed,
+    SpeedPosition,
+    TorquePosition,
+    Hybrid
+};
+
 class LCDA630P_Modbus_RTU
 {
     private : 
@@ -30,6 +42,7 @@ class LCDA630P_Modbus_RTU
     uint32_t PositionOffsetOfAbsolutEncoder ;
     uint16_t controlOverModbus;
     bool lower16_bit_first = true ; 
+    servomode eControlMode ; 
     
     public :
         LCDA630P_Modbus_RTU();
