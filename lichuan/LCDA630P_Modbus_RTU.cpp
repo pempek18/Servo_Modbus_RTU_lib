@@ -253,6 +253,25 @@ std::vector<std::vector<uint8_t>> LCDA630P_Modbus_RTU::read_servo_brief(uint8_t 
 
     return list_of_commands;
 }
+int64_t LCDA630P_Modbus_RTU::read_actual_position(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction)
+{
+    std::vector<std::vector<uint8_t>> list_of_commands;
+    list_of_commands.push_back(read_parameter(slave_id, 11, 77));
+    list_of_commands.push_back(read_parameter(slave_id, 11, 79));
+    std::vector<uint32_t> values ;
+    DEBUG_SERIAL_PRINTLN("*****************Read Absolute Position*****************")
+    for (std::vector<uint8_t> command : list_of_commands)
+    {
+        std::vector<uint8_t> feedback = sendFunction(command) ;
+        uint32_t response = parseModbusResponse(feedback) ; 
+        values.push_back(response);
+    }       
+    DEBUG_SERIAL_PRINTLN("*****************Read Absolute Position*****************")
+    int64_t temp = values[1] ;
+    temp = (temp << 32);
+    ActualAbsolutePosition = temp | values[0];
+    return ActualAbsolutePosition;
+}
 std::vector<std::vector<uint8_t>> LCDA630P_Modbus_RTU::raw_one_rotation(uint8_t slave_id)
 {
     std::vector<std::vector<uint8_t>> list_of_commands;
@@ -443,6 +462,22 @@ std::vector<std::vector<uint8_t>> LCDA630P_Modbus_RTU::speed_command(uint8_t sla
     list_of_commands.push_back(write_parameter(1,0x17,0,1));//VDI1 Terminal function selection
     list_of_commands.push_back(write_parameter(1,0x31,0,1));//Communication given VDI virtual level 0～65535 16 bit input register 
     list_of_commands.push_back(write_parameter(1,0x06,0x03,speed));//Multi-segment location operation mode Sequential operation (P11-01 for selection of segment number)
+    DEBUG_SERIAL_PRINTLN("*****************Rotate with speed*****************");
+    for (std::vector<uint8_t> command : list_of_commands)
+    {
+        std::vector<uint8_t> recive = sendFunction(command) ;
+        parseModbusResponse(recive);
+    }
+    DEBUG_SERIAL_PRINTLN("*****************Rotate with speed*****************");
+    return list_of_commands;
+}
+std::vector<std::vector<uint8_t>> LCDA630P_Modbus_RTU::set_torque(uint8_t slave_id, int32_t torque, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction)
+{
+    std::vector<std::vector<uint8_t>> list_of_commands ;
+    list_of_commands.push_back(write_parameter(1,0x07,9,torque));
+    list_of_commands.push_back(write_parameter(1,0x07,10,torque));
+    list_of_commands.push_back(write_parameter(1,0x07,11,torque));
+    list_of_commands.push_back(write_parameter(1,0x07,12,torque));
     DEBUG_SERIAL_PRINTLN("*****************Rotate with speed*****************");
     for (std::vector<uint8_t> command : list_of_commands)
     {

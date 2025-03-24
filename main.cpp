@@ -27,7 +27,7 @@ int main()
     std::string s ; 
     while (true)
     {
-        std::cout << "choose what what to do: r[read], w[write], m[move], s[speed], d[disable], q[quit]" << std::endl ; 
+        std::cout << "choose what what to do: r[read], w[write], p[acutal position], t[torque], m[move], s[speed], d[disable], q[quit]" << std::endl ; 
         std::cin >> mode ; 
         switch (mode)
         {
@@ -71,6 +71,20 @@ int main()
                 servo.write_parameter(1, paramGroup, paramOffset, value, send_wrapper);
             std::cout << "*****************Write Param*****************" << std::endl;  
             break; 
+        }    
+        case 'p' :
+        {
+            uint64_t pos = servo.read_actual_position(1, send_wrapper);
+            std::cout << "Actual Absolut position is : " << std::dec <<  pos << " hex : 0x" << std::hex << pos << std::endl ;
+            break;
+        }   
+        case 't' :
+        {
+            std::cout << "Type Torque[%]" << std::endl ;
+            std::cin >> s ;      
+            int32_t torque = std::stoi(s);  
+            std::vector<std::vector<uint8_t>> config = servo.set_torque(1, torque, send_wrapper);
+            break;
         }
         case 'm' :
         {
@@ -80,7 +94,7 @@ int main()
             std::vector<std::vector<uint8_t>> config = servo.config_for_modbus_control_position(1, send_wrapper);
             std::vector<std::vector<uint8_t>> one_rot = servo.move_to_position(1, position, send_wrapper);  
             break;
-        }           
+        }                          
         case 's' :
         {
             std::cout << "Type speed value or q to quit" << std::endl ;

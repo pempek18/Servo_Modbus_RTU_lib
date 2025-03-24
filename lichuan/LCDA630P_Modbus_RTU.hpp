@@ -41,6 +41,7 @@ class LCDA630P_Modbus_RTU
     uint16_t MaxSpeed ;
     uint32_t PositionOffsetOfAbsolutEncoder ;
     uint16_t controlOverModbus;
+    int64_t ActualAbsolutePosition;
     bool lower16_bit_first = true ; 
     servomode eControlMode ; 
     
@@ -55,9 +56,11 @@ class LCDA630P_Modbus_RTU
         std::vector<uint8_t> write_parameter_32(uint8_t slave_id, uint8_t group_number, uint8_t parameter_offset, int32_t value);        
         std::vector<uint8_t> write_parameter_32(uint8_t slave_id, uint8_t group_number, uint8_t parameter_offset, int32_t value, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);        
         std::vector<std::vector<uint8_t>>  read_servo_brief(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
+        int64_t read_actual_position(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
         std::vector<std::vector<uint8_t>>  raw_one_rotation(uint8_t slave_id);
         std::vector<std::vector<uint8_t>>  move_to_position(uint8_t slave_id, int32_t position, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
         std::vector<std::vector<uint8_t>>  speed_command(uint8_t slave_id, int32_t speed, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
+        std::vector<std::vector<uint8_t>>  set_torque(uint8_t slave_id, int32_t torque, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
         std::vector<std::vector<uint8_t>>  config_for_modbus_control_position(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
         std::vector<std::vector<uint8_t>>  config_for_modbus_control_speed(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
         std::string vector_to_string(std::vector<uint8_t>);
