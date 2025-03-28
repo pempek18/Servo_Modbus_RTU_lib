@@ -1,7 +1,7 @@
 #include <iostream>
 #include <iomanip>
 #include <boost/asio.hpp>
-#include "lichuan/LCDA630P_Modbus_RTU.hpp"
+#include "LCDA630P_Modbus_RTU.hpp"
 
 void send_request_over_serial(std::string request);
 std::vector<uint8_t> send(std::string request, bool print=false, uint8_t frameSize = 8);
@@ -129,7 +129,6 @@ int main()
     } 
     return 0;
 }
-
 
 std::vector<uint8_t> send(std::string request, bool print, uint8_t frameSize)
 {
