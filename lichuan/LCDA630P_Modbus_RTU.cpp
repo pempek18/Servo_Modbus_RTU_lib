@@ -468,7 +468,7 @@ std::vector<std::vector<uint8_t>> LCDA630P_Modbus_RTU::moveRelative(uint8_t slav
     DEBUG_SERIAL_PRINTLN("*****************Move to pos*****************");
     return list_of_commands;
 }
-std::vector<std::vector<uint8_t>> LCDA630P_Modbus_RTU::speed_command(uint8_t slave_id, int32_t speed, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction)
+std::vector<std::vector<uint8_t>> LCDA630P_Modbus_RTU::moveVelocity(uint8_t slave_id, int32_t speed, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction)
 {
     std::vector<std::vector<uint8_t>> list_of_commands ;
     if (!controlOverModbus)

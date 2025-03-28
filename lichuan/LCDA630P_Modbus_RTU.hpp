@@ -130,7 +130,7 @@ class LCDA630P_Modbus_RTU
         /// @param speed setpoint speed in RPM, max 6000 set > 0 to go direction incrementic encoder and < 0 decrementig
         /// @param sendFunction provide function for sending RS-485
         /// @return vector of mupliple frames
-        std::vector<std::vector<uint8_t>>  speed_command(uint8_t slave_id, int32_t speed, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
+        std::vector<std::vector<uint8_t>>  moveVelocity(uint8_t slave_id, int32_t speed, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
         /// @brief Control servo in speed mode
         /// @param slave_id Servo addres
         /// @param torque setpoint torque in Nm

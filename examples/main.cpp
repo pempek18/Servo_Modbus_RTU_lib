@@ -113,7 +113,7 @@ int main()
             std::cin >> s ;      
             int32_t position = std::stoi(s);  
             std::vector<std::vector<uint8_t>> config = servo.config_for_modbus_control_speed(1, send_wrapper);
-            std::vector<std::vector<uint8_t>> one_rot = servo.speed_command(1, position, send_wrapper);  
+            std::vector<std::vector<uint8_t>> one_rot = servo.moveVelocity(1, position, send_wrapper);  
             break;
         }         
         case 'd' :
