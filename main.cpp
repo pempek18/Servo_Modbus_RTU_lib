@@ -4,7 +4,7 @@
 #include "lichuan/LCDA630P_Modbus_RTU.hpp"
 
 void send_request_over_serial(std::string request);
-std::vector<uint8_t> send(std::string request, bool print=false);
+std::vector<uint8_t> send(std::string request, bool print=false, uint8_t frameSize = 8);
 std::vector<uint8_t> send_wrapper(const std::vector<uint8_t>& request) ;
 void read_with_timeout(boost::asio::io_context &io, boost::asio::serial_port &serial, std::vector<uint8_t> &response_vector, int timeout_ms) ;
 std::vector<std::string> splitString(const std::string& str, char delimiter) {
@@ -40,12 +40,18 @@ int main()
         {
             std::cout << "*****************Read Param*****************" << std::endl;
             int paramGroup, paramOffset ; 
-            std::cout << "Type Group Parameter and Offset in format GROUP,OFFSET" << std::endl ;
+            std::cout << "Type Group Parameter and Offset in format GROUP,OFFSET, SIZE[OPTIONAL]" << std::endl ;
             std::cin >> s ;
             std::vector<std::string> params = splitString(s, ',');
             paramGroup = std::stoi(params[0]);
             paramOffset = std::stoi(params[1]);
-            servo.read_parameter(1, paramGroup, paramOffset, send_wrapper);
+            if (params.size() < 3)
+                servo.read_parameter(1, paramGroup, paramOffset, send_wrapper);
+            else 
+            {
+                uint8_t size = std::stoi(params[2]);
+                servo.read_parameter(1, paramGroup, paramOffset, send_wrapper, size);
+            }
             std::cout << "*****************Read Param*****************" << std::endl;  
             break; 
         }
@@ -74,10 +80,16 @@ int main()
         }    
         case 'p' :
         {
-            uint64_t pos = servo.read_actual_position(1, send_wrapper);
+            uint64_t pos = servo.get_actual_position(1, send_wrapper);
             std::cout << "Actual Absolut position is : " << std::dec <<  pos << " hex : 0x" << std::hex << pos << std::endl ;
             break;
         }   
+        case 'v' :
+        {
+            uint64_t pos = servo.get_actual_position(1, send_wrapper);
+            std::cout << "Actual Absolut position is : " << std::dec <<  pos << " hex : 0x" << std::hex << pos << std::endl ;
+            break;
+        }           
         case 't' :
         {
             std::cout << "Type Torque[%]" << std::endl ;
@@ -92,7 +104,7 @@ int main()
             std::cin >> s ;      
             int32_t position = std::stoi(s);  
             std::vector<std::vector<uint8_t>> config = servo.config_for_modbus_control_position(1, send_wrapper);
-            std::vector<std::vector<uint8_t>> one_rot = servo.move_to_position(1, position, send_wrapper);  
+            std::vector<std::vector<uint8_t>> one_rot = servo.moveRelative(1, position, send_wrapper);  
             break;
         }                          
         case 's' :
@@ -106,10 +118,7 @@ int main()
         }         
         case 'd' :
         {
-            std::cout << "*****************Disable*****************" << std::endl;
-            std::vector<uint8_t> disable = servo.write_parameter(1,0x31,0,0);
-            send_wrapper(disable);
-            std::cout << "*****************Disable*****************" << std::endl; 
+            bool response = servo.disable(1, send_wrapper);
             break;
         }
         case 'q' :        
@@ -122,9 +131,9 @@ int main()
 }
 
 
-std::vector<uint8_t> send(std::string request, bool print)
+std::vector<uint8_t> send(std::string request, bool print, uint8_t frameSize)
 {
-    std::vector<uint8_t> response_vector(request.size()) ; 
+    std::vector<uint8_t> response_vector(frameSize) ; 
     try
     {
         boost::asio::io_service io;
@@ -148,12 +157,6 @@ std::vector<uint8_t> send(std::string request, bool print)
             }
             std::cout << std::endl;
         }
-
-        int size_of_frame = 8;
-        if (request[1] == 0x10)
-            size_of_frame = 8;
-        else 
-            size_of_frame = 8;
 
         read_with_timeout(io, serial, response_vector, 100);
         
@@ -184,8 +187,13 @@ std::vector<uint8_t> send_wrapper(const std::vector<uint8_t> &request)
     {
         request_string += static_cast<char>(request[i]);        // Get low byte
     }
-    
-    std::vector<uint8_t> response = send(request_string, true);
+    uint8_t frameSize = 8 ; 
+    if (  ((uint8_t)request[5]) < frameSize)
+        frameSize = 8 ; 
+    else
+        frameSize = ((uint8_t)request[5]) ; 
+    std::cout << "frame size : " << std::dec << +frameSize << std::endl ; //+ - promotion to a printable type
+    std::vector<uint8_t> response = send(request_string, true, frameSize);
     return response ;
 }
 void read_with_timeout(boost::asio::io_context &io, boost::asio::serial_port &serial, std::vector<uint8_t> &response_vector, int timeout_ms)

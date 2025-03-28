@@ -21,8 +21,7 @@ void LCDA630P_Modbus_RTU::debug_print_frame(std::vector<uint8_t> frame, bool pri
         DEBUG_SERIAL_PRINTLN("");
     }
 }
-
-std::vector<uint8_t> LCDA630P_Modbus_RTU::read_parameter(uint8_t slave_id, uint8_t group_number, uint8_t parameter_offset)
+std::vector<uint8_t> LCDA630P_Modbus_RTU::read_parameter(uint8_t slave_id, uint8_t group_number, uint8_t parameter_offset, uint8_t size )
 {
     std::vector<uint8_t> frame;
     frame.push_back(slave_id); // ADR
@@ -30,7 +29,7 @@ std::vector<uint8_t> LCDA630P_Modbus_RTU::read_parameter(uint8_t slave_id, uint8
     frame.push_back(group_number);
     frame.push_back(parameter_offset);
     frame.push_back(0 >> 8);
-    frame.push_back(2 & 0xFF);
+    frame.push_back(size & 0xFF);
 
     // Calculate CRC using uint8_t data
     uint16_t crc = crcValueCalc(frame.data(), frame.size());
@@ -48,7 +47,7 @@ std::vector<uint8_t> LCDA630P_Modbus_RTU::read_parameter(uint8_t slave_id, uint8
 #endif
     return frame;
 }
-std::vector<uint8_t> LCDA630P_Modbus_RTU::read_parameter(uint8_t slave_id, uint8_t group_number, uint8_t parameter_offset, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction)
+std::vector<uint8_t> LCDA630P_Modbus_RTU::read_parameter(uint8_t slave_id, uint8_t group_number, uint8_t parameter_offset, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction, uint8_t size)
 {
     std::vector<uint8_t> frame;
     frame.push_back(slave_id); // ADR
@@ -56,7 +55,7 @@ std::vector<uint8_t> LCDA630P_Modbus_RTU::read_parameter(uint8_t slave_id, uint8
     frame.push_back(group_number);
     frame.push_back(parameter_offset);
     frame.push_back(0 >> 8);
-    frame.push_back(2 & 0xFF);
+    frame.push_back(size & 0xFF);
 
     // Calculate CRC using uint8_t data
     uint16_t crc = crcValueCalc(frame.data(), frame.size());
@@ -253,17 +252,17 @@ std::vector<std::vector<uint8_t>> LCDA630P_Modbus_RTU::read_servo_brief(uint8_t 
 
     return list_of_commands;
 }
-int64_t LCDA630P_Modbus_RTU::read_actual_position(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction)
+int64_t LCDA630P_Modbus_RTU::get_actual_position(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction)
 {
     std::vector<std::vector<uint8_t>> list_of_commands;
     list_of_commands.push_back(read_parameter(slave_id, 11, 77));
     list_of_commands.push_back(read_parameter(slave_id, 11, 79));
-    std::vector<uint32_t> values ;
+    std::vector<int32_t> values ;
     DEBUG_SERIAL_PRINTLN("*****************Read Absolute Position*****************")
     for (std::vector<uint8_t> command : list_of_commands)
     {
         std::vector<uint8_t> feedback = sendFunction(command) ;
-        uint32_t response = parseModbusResponse(feedback) ; 
+        int32_t response = parseModbusResponse(feedback) ; 
         values.push_back(response);
     }       
     DEBUG_SERIAL_PRINTLN("*****************Read Absolute Position*****************")
@@ -271,6 +270,22 @@ int64_t LCDA630P_Modbus_RTU::read_actual_position(uint8_t slave_id, std::functio
     temp = (temp << 32);
     ActualAbsolutePosition = temp | values[0];
     return ActualAbsolutePosition;
+}
+int16_t LCDA630P_Modbus_RTU::get_speed(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction)
+{
+    std::vector<std::vector<uint8_t>> list_of_commands;
+    list_of_commands.push_back(read_parameter(slave_id, 11, 55));
+    std::vector<int32_t> values ;
+    DEBUG_SERIAL_PRINTLN("*****************Read Absolute Position*****************")
+    for (std::vector<uint8_t> command : list_of_commands)
+    {
+        std::vector<uint8_t> feedback = sendFunction(command) ;
+        int32_t response = parseModbusResponse(feedback) ; 
+        values.push_back(response);
+    }       
+    DEBUG_SERIAL_PRINTLN("*****************Read Absolute Position*****************")
+    ActualSpeedRpm = values[0];
+    return ActualSpeedRpm;
 }
 std::vector<std::vector<uint8_t>> LCDA630P_Modbus_RTU::raw_one_rotation(uint8_t slave_id)
 {
@@ -436,7 +451,7 @@ std::vector<std::vector<uint8_t>> LCDA630P_Modbus_RTU::raw_one_rotation(uint8_t 
     DEBUG_SERIAL_PRINTLN("*****************Move one rotation RAW DATA*****************");
     return list_of_commands ;
 }
-std::vector<std::vector<uint8_t>> LCDA630P_Modbus_RTU::move_to_position(uint8_t slave_id, int32_t position, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction)
+std::vector<std::vector<uint8_t>> LCDA630P_Modbus_RTU::moveRelative(uint8_t slave_id, int32_t position, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction)
 {
     std::vector<std::vector<uint8_t>> list_of_commands ;
     if (!controlOverModbus)
@@ -525,6 +540,15 @@ std::vector<std::vector<uint8_t>> LCDA630P_Modbus_RTU::config_for_modbus_control
     DEBUG_SERIAL_PRINTLN("*****************Config for modbus control*****************");
     return list_of_commands;
 }
+bool LCDA630P_Modbus_RTU::disable(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction)
+{
+    DEBUG_SERIAL_PRINTLN("*****************Disable*****************");
+    std::vector<uint8_t> command = write_parameter(1,0x31,0,0);
+    std::vector<uint8_t> response = sendFunction(command) ;
+    bool value = parseModbusResponse(response);
+    DEBUG_SERIAL_PRINTLN("*****************Disable*****************");
+    return value;
+}
 std::string LCDA630P_Modbus_RTU::vector_to_string(std::vector<uint8_t> frame)
 {
     // Convert uint16_t array to string
@@ -538,12 +562,11 @@ std::string LCDA630P_Modbus_RTU::vector_to_string(std::vector<uint8_t> frame)
 }
 uint32_t LCDA630P_Modbus_RTU::parseModbusResponse(const std::vector<uint8_t> &response)
 {
-    if (response.size() < 7) {
-        throw std::runtime_error("Invalid Modbus response: too short");
-    }
     // Extract first word (0x2d15)
     uint32_t value = 0;
-    if (lower16_bit_first && response.size() > 8 )
+    if (response.size() < 7) {
+        throw std::runtime_error("Invalid Modbus response: too short");
+    }else if (lower16_bit_first && response.size() > 8 )
     {
         value =  (response[7] << 8) | (response[8] << 0) | (response[9] << 24) | (response[10] << 16 );
 #if DEBUG_SERIAL or true
@@ -555,9 +578,7 @@ uint32_t LCDA630P_Modbus_RTU::parseModbusResponse(const std::vector<uint8_t> &re
             static_cast<int>(value) << std::endl;
         DEBUG_SERIAL_PRINT(ss.str());
 #endif
-    }
-
-    else if (!lower16_bit_first && response.size() > 8 )
+    }else if (!lower16_bit_first && response.size() > 8 )
     {
         value =  (response[9] << 8) | (response[10] << 0) | (response[7] << 24) | (response[8] << 16 );
 #if DEBUG_SERIAL or true
@@ -569,8 +590,7 @@ uint32_t LCDA630P_Modbus_RTU::parseModbusResponse(const std::vector<uint8_t> &re
             static_cast<int>(value) << std::endl;
         DEBUG_SERIAL_PRINT(ss.str());
 #endif
-    }
-    else
+    }else
     {
         value = (response[3] << 8) | response[4];      
 #if DEBUG_SERIAL or true
