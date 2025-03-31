@@ -1,14 +1,14 @@
 #ifndef LCDA630P_MODBUS_RTU_HPP
 #define LCDA630P_MODBUS_RTU_HPP
 
-#define DEBUG_SERIAL false
-#ifdef DEBUG_SERIAL
-#include <iostream>
-#define DEBUG_SERIAL_PRINTLN(x) std::cout << x << std::endl;
-#define DEBUG_SERIAL_PRINT(x) std::cout << x;
+#define DEBUG_SERIAL true
+#if (DEBUG_SERIAL == true)
+    #include <iostream>
+    #define DEBUG_SERIAL_PRINTLN(x) std::cout << x << std::endl;
+    #define DEBUG_SERIAL_PRINT(x) std::cout << x;
 #else
-#define DEBUG_SERIAL_PRINTLN(x)
-#define DEBUG_SERIAL_PRINT(x)
+    #define DEBUG_SERIAL_PRINTLN(x)
+    #define DEBUG_SERIAL_PRINT(x)
 #endif
 
 #include <cstdint>

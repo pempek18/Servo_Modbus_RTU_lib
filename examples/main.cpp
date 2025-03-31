@@ -79,7 +79,7 @@ int main()
         }    
         case 'p' :
         {
-            uint64_t pos = servo.get_actual_position(1, send_wrapper);
+            int64_t pos = servo.get_actual_position(1, send_wrapper);
             std::cout << "Actual Absolut position is : " << std::dec <<  pos << " hex : 0x" << std::hex << pos << std::endl ;
             break;
         }   

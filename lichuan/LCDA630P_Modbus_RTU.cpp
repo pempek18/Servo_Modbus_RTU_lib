@@ -27,7 +27,7 @@ std::vector<int32_t> LCDA630P_Modbus_RTU::processListoOfCommands(std::vector<std
     for (std::vector<uint8_t> command : listOfCommands)
     {
         std::vector<uint8_t> feedback = sendFunction(command) ;
-        uint32_t response = parseModbusResponse(feedback) ; 
+        int32_t response = parseModbusResponse(feedback) ; 
         values.push_back(response);
     } 
     return values ; 
@@ -225,15 +225,13 @@ std::vector<std::vector<uint8_t>> LCDA630P_Modbus_RTU::read_servo_brief(uint8_t 
 int64_t LCDA630P_Modbus_RTU::get_actual_position(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction)
 {
     std::vector<std::vector<uint8_t>> list_of_commands;
-    list_of_commands.push_back(read_parameter(slave_id, 11, 77));
-    list_of_commands.push_back(read_parameter(slave_id, 11, 79));
+    list_of_commands.push_back(read_parameter(slave_id, 11, 77, 9));
+    list_of_commands.push_back(read_parameter(slave_id, 11, 79, 9));
     std::vector<int32_t> values ;
     DEBUG_SERIAL_PRINTLN("*****************Read Absolute Position*****************")
     values = processListoOfCommands(list_of_commands, sendFunction);         
     DEBUG_SERIAL_PRINTLN("*****************Read Absolute Position*****************")
-    int64_t temp = values[1] ;
-    temp = (temp << 32);
-    ActualAbsolutePosition = temp | values[0];
+    ActualAbsolutePosition = (static_cast<int64_t>(static_cast<uint32_t>(values[1])) << 32) | static_cast<uint32_t>(values[0]);
     return ActualAbsolutePosition;
 }
 int16_t LCDA630P_Modbus_RTU::get_speed(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction)
@@ -464,41 +462,55 @@ int32_t LCDA630P_Modbus_RTU::parseModbusResponse(const std::vector<uint8_t> &res
     int32_t value = 0;
     if (response.size() < 7) {
         throw std::runtime_error("Invalid Modbus response: too short");
-    }else if (lower16_bit_first && response.size() > 8 )
+    }  
+    else if (lower16_bit_first && response.size() > 8 )
     {
-        value =  (response[7] << 8) | (response[8] << 0) | (response[9] << 24) | (response[10] << 16 );
-#if DEBUG_SERIAL or true
+        // value = (static_cast<int32_t>(response[5]) << 0) |
+        //         (static_cast<int32_t>(response[6]) << 8) |
+        //         (static_cast<int32_t>(response[7]) << 16)  |
+        //         (static_cast<int32_t>(response[8]) << 24);        
+        value = (static_cast<int32_t>(response[3]) << 8) |
+                (static_cast<int32_t>(response[4]) << 0) |
+                (static_cast<int32_t>(response[5]) << 24)  |
+                (static_cast<int32_t>(response[6]) << 16);  
+#if DEBUG_SERIAL
+    DEBUG_SERIAL_PRINTLN("lower16_bit_first && response.size() > 8");
         std::stringstream ss ;
         ss << std::hex << std::setfill('0') << std::setw(2) << "adr: " << static_cast<int>(response[0]) << "\tf :" << 
             static_cast<int>(response[1]) << "\tp" << static_cast<int>(response[2]) << "-" << 
             static_cast<int>(response[3]) << "\tsize: " << std::dec << std::setw(2) << response.size() << 
             "\tvalue : " << value << "\t hex: " << std::hex << std::setfill('0') << std::setw(2) << "0x" << 
             static_cast<int>(value) << std::endl;
-        DEBUG_SERIAL_PRINT(ss.str());
+        DEBUG_SERIAL_PRINT(ss.str().c_str());
 #endif
-    }else if (!lower16_bit_first && response.size() > 8 )
+    }
+    else if (!lower16_bit_first && response.size() > 8 )
     {
-        value =  (response[9] << 8) | (response[10] << 0) | (response[7] << 24) | (response[8] << 16 );
-#if DEBUG_SERIAL or true
+        value = (static_cast<int32_t>(response[7]) << 24) |
+                (static_cast<int32_t>(response[8]) << 16) |
+                (static_cast<int32_t>(response[9]) << 8)  |
+                (static_cast<int32_t>(response[10]) << 0);        
+#if DEBUG_SERIAL
+        DEBUG_SERIAL_PRINTLN("!lower16_bit_first && response.size() > 8 ");
         std::stringstream ss ;
         ss << std::hex << std::setfill('0') << std::setw(2) << "adr: " << static_cast<int>(response[0]) << "\tf :" << 
             static_cast<int>(response[1]) << "\tp" << static_cast<int>(response[2]) << "-" << 
             static_cast<int>(response[3]) << "\tsize: " << std::dec << std::setw(2) << response.size() << 
             "\tvalue : " << value << "\t hex: " << std::hex << std::setfill('0') << std::setw(2) << "0x" << 
             static_cast<int>(value) << std::endl;
-        DEBUG_SERIAL_PRINT(ss.str());
+        DEBUG_SERIAL_PRINT(ss.str().c_str());
 #endif
     }else
     {
-        int16_t temp = (response[3] << 8) | response[4];      
-        value = temp;
-#if DEBUG_SERIAL or true
+        value = static_cast<int16_t>(response[3] << 8 ) | response[4];
+#if DEBUG_SERIAL
+        DEBUG_SERIAL_PRINTLN("response.size() <= 8 ");
         std::stringstream ss ;
         ss << std::hex << std::setfill('0') << std::setw(2) << "adr: " << static_cast<int>(response[0]) << "\tf :" << 
             static_cast<int>(response[1]) << "\tsize: " << std::dec << std::setw(2) << static_cast<int>(response[2]) << 
             "\tvalue : " << value << "\t hex: " << std::hex << std::setfill('0') << std::setw(2) << "0x" << 
             static_cast<int>(value) << std::endl;
-        DEBUG_SERIAL_PRINT(ss.str());
+        DEBUG_SERIAL_PRINT(ss.str().c_str());
 #endif
     }
 
