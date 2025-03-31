@@ -54,7 +54,12 @@ class LCDA630P_Modbus_RTU
         /// @brief Debug function to show the frame
         /// @param frame frame itself
         /// @param print print enable
-        void debug_print_frame(std::vector<uint8_t> frame, bool print);
+        void debug_print_frame(std::vector<uint8_t> frame, bool print=true);
+        /// @brief poin address of list of command, to process them
+        /// @param listOfCommands Addres of sequence of frames 
+        /// @param sendFunction provide function for sending RS-485
+        /// @return values in response to list of command
+        std::vector<int32_t> processListoOfCommands(std::vector<std::vector<uint8_t>>& listOfCommands,  std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);        
         /// @brief Read specific parameter form servo 
         /// @param slave_id Servo addres
         /// @param group_number PXX-YY - XX - group number
@@ -159,7 +164,7 @@ class LCDA630P_Modbus_RTU
         /// @brief parse response and print as readable on command line, return response value
         /// @param frame given in response of send function 
         /// @return 
-        uint32_t parseModbusResponse(const std::vector<uint8_t>& response) ;
+        int32_t parseModbusResponse(const std::vector<uint8_t>& response) ;
         /// @brief Calculatr crc for send request
         /// @param data frame without data
         /// @param length size of data

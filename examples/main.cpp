@@ -22,7 +22,6 @@ std::vector<std::string> splitString(const std::string& str, char delimiter) {
 int main()
 {
     LCDA630P_Modbus_RTU servo;
-    servo.scan_devices();
     char mode ;
     std::string s ; 
     while (true)
