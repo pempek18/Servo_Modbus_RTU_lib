@@ -231,7 +231,7 @@ int64_t LCDA630P_Modbus_RTU::get_actual_position(uint8_t slave_id, std::function
     DEBUG_SERIAL_PRINTLN("*****************Read Absolute Position*****************")
     values = processListoOfCommands(list_of_commands, sendFunction);         
     DEBUG_SERIAL_PRINTLN("*****************Read Absolute Position*****************")
-    ActualAbsolutePosition = (static_cast<int64_t>(static_cast<uint32_t>(values[1])) << 32) | static_cast<uint32_t>(values[0]);
+    ActualAbsolutePosition = (static_cast<int64_t>(static_cast<int32_t>(values[1])) << 32) | static_cast<int32_t>(values[0]);
     return ActualAbsolutePosition;
 }
 int16_t LCDA630P_Modbus_RTU::get_speed(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction)
