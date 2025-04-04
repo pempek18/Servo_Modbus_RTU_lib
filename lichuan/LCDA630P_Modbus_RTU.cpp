@@ -374,6 +374,24 @@ std::vector<std::vector<uint8_t>> LCDA630P_Modbus_RTU::moveRelative(uint8_t slav
     DEBUG_SERIAL_PRINTLN("*****************Move to pos*****************");
     return list_of_commands;
 }
+int64_t LCDA630P_Modbus_RTU::moveAbsolute(uint8_t slave_id, int64_t position, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction)
+{
+    config_for_modbus_control_position(1, sendFunction);
+    get_actual_position(slave_id, sendFunction);
+    int64_t diffToPos = (position - ActualAbsolutePosition);
+    std::stringstream ss ;
+        ss << "Absolute Position " << std::dec << ActualAbsolutePosition << std::endl ;
+        ss << "Setpoint Position " << std::dec << position << std::endl ;
+        ss << "Difference in position: " << std::dec << diffToPos << std::endl ;
+    float fDiffToPos = ((float)diffToPos / (float)encoder_resolution) * (float)pulse_per_rotation ;
+        ss << "Difference in position float: " << fDiffToPos << std::endl ;    
+    diffToPos = (int64_t)fDiffToPos ;
+        ss << "Move absolut difference: " << std::dec << diffToPos << std::endl ;
+    DEBUG_SERIAL_PRINTLN(ss.str().c_str());
+    moveRelative(slave_id, (int32_t)diffToPos, sendFunction);
+    get_actual_position(slave_id, sendFunction);
+    return ActualAbsolutePosition ;
+}
 std::vector<std::vector<uint8_t>> LCDA630P_Modbus_RTU::moveVelocity(uint8_t slave_id, int32_t speed, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction)
 {
     std::vector<std::vector<uint8_t>> list_of_commands ;
@@ -461,17 +479,13 @@ int32_t LCDA630P_Modbus_RTU::parseModbusResponse(const std::vector<uint8_t> &res
     // Extract first word (0x2d15)
     int32_t value = 0;
     if (response.size() < 7) {
-        throw std::runtime_error("Invalid Modbus response: too short");
+        return 0xFFFFFFFF ;
     }  
     else if (lower16_bit_first && response.size() > 8 )
-    {
-        // value = (static_cast<int32_t>(response[5]) << 0) |
-        //         (static_cast<int32_t>(response[6]) << 8) |
-        //         (static_cast<int32_t>(response[7]) << 16)  |
-        //         (static_cast<int32_t>(response[8]) << 24);        
+    {       
         value = (static_cast<int32_t>(response[3]) << 8) |
                 (static_cast<int32_t>(response[4]) << 0) |
-                (static_cast<int32_t>(response[5]) << 24)  |
+                (static_cast<int32_t>(response[5]) << 24)|
                 (static_cast<int32_t>(response[6]) << 16);  
 #if DEBUG_SERIAL
     DEBUG_SERIAL_PRINTLN("lower16_bit_first && response.size() > 8");

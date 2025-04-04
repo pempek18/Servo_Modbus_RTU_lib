@@ -42,8 +42,10 @@ class LCDA630P_Modbus_RTU
         uint16_t MaxSpeed ;
         uint32_t PositionOffsetOfAbsolutEncoder ;
         uint16_t controlOverModbus;
+        int64_t encoder_resolution = 8388600 ;
+        int64_t pulse_per_rotation = 10000 ;
         bool lower16_bit_first = true ; 
-        //working parameters
+        //Absolute position stored in instance
         int64_t ActualAbsolutePosition;
         int16_t ActualSpeedRpm ; 
         servomode eControlMode ; 
@@ -130,6 +132,12 @@ class LCDA630P_Modbus_RTU
         /// @param sendFunction provide function for sending RS-485
         /// @return  vector of mupliple frames
         std::vector<std::vector<uint8_t>>  moveRelative(uint8_t slave_id, int32_t position,  std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
+        /// @brief Move absolut to position based on encoder position
+        /// @param slave_id Servo addres
+        /// @param position number of increments to move
+        /// @param sendFunction provide function for sending RS-485
+        /// @return vector of mupliple frames
+        int64_t moveAbsolute(uint8_t slave_id, int64_t position,  std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
         /// @brief Control servo in speed mode
         /// @param slave_id Servo addres
         /// @param speed setpoint speed in RPM, max 6000 set > 0 to go direction incrementic encoder and < 0 decrementig
