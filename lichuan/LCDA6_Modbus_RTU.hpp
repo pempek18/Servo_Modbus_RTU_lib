@@ -109,7 +109,7 @@ class LCDA6_Modbus_RTU
         std::vector<uint8_t> write_parameter_32(uint8_t slave_id, uint16_t address, int32_t value, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
 
 
-        std::vector<std::vector<uint8_t>> LCDA6_Modbus_RTU::servo_config(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
+        std::vector<std::vector<uint8_t>>  servo_config(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
         /// @brief Read all important parameters from servo and store in the instance of class variables
         /// @param slave_id Servo addres
         /// @param sendFunction provide function for sending RS-485
@@ -163,6 +163,9 @@ class LCDA6_Modbus_RTU
         /// @param sendFunction provide function for sending RS-485
         /// @return  vector of mupliple frames
         std::vector<std::vector<uint8_t>>  config_for_modbus_control_speed(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
+
+
+        bool enable(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
         /// @brief Send Disable to servo to take off power form motor
         /// @param slave_id Servo addres
         /// @param sendFunction provide function for sending RS-485
