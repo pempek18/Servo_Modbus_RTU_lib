@@ -195,11 +195,32 @@ std::vector<uint8_t> LCDA6_Modbus_RTU::write_parameter_32(uint8_t slave_id, uint
 
 std::vector<std::vector<uint8_t>> LCDA6_Modbus_RTU::servo_config(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction)
 {
+    // Make sure this servo will use modbus
+    controlOverModbus = true;
+
     std::vector<std::vector<uint8_t>> list_of_commands;
 
-    int16_t DI_cfg = 1 << 0;                                         // Set Enable Bit
-    list_of_commands.push_back(write_parameter(slave_id, 0x1A4, DI_cfg));
-    list_of_commands.push_back(write_parameter(slave_id, 0x90, 1));  // Control Mode - 1 = Communication (extended)
+    int16_t DI_cfg = 1 << 0;                                            // Set Enable Bit
+    list_of_commands.push_back(write_parameter(slave_id, 0x1A0, DI_cfg));
+
+    // DI configuration SPEED MODE
+    list_of_commands.push_back(write_parameter(slave_id, 0x80, 0));
+    list_of_commands.push_back(write_parameter(slave_id, 0x81, 1));
+    list_of_commands.push_back(write_parameter(slave_id, 0x82, 2));
+    list_of_commands.push_back(write_parameter(slave_id, 0x83, 3));
+    list_of_commands.push_back(write_parameter(slave_id, 0x84, 5));
+    list_of_commands.push_back(write_parameter(slave_id, 0x85, 7));
+    list_of_commands.push_back(write_parameter(slave_id, 0x86, 11));
+    list_of_commands.push_back(write_parameter(slave_id, 0x87, 12));
+    // DO configuration SPEED MODE
+    list_of_commands.push_back(write_parameter(slave_id, 0x88, 0));
+    list_of_commands.push_back(write_parameter(slave_id, 0x89, 1));
+    list_of_commands.push_back(write_parameter(slave_id, 0x8A, 7));
+    list_of_commands.push_back(write_parameter(slave_id, 0x8B, 3));
+    list_of_commands.push_back(write_parameter(slave_id, 0x8C, 4));
+    list_of_commands.push_back(write_parameter(slave_id, 0x8D, 5));
+
+    list_of_commands.push_back(write_parameter(slave_id, 0x90,  1));    // Control Mode - 1 = Communication (extended)
 
 
     std::vector<int32_t> values ;
@@ -237,6 +258,7 @@ std::vector<std::vector<uint8_t>> LCDA6_Modbus_RTU::read_servo_brief(uint8_t sla
 // }
 int16_t LCDA6_Modbus_RTU::get_speed(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction)
 {
+    //FIXME - Leave both for now, due to errors from past
     // If DI is set as INTSPD                                               //TODO - leave for now
     std::vector<uint8_t> command = read_parameter(slave_id, 0x53);          // Get Speed value (RPM) from INTSPD0
     // if not used DI as INTSPD
@@ -401,11 +423,12 @@ std::vector<std::vector<uint8_t>> LCDA6_Modbus_RTU::moveVelocity(uint8_t slave_i
     if (!controlOverModbus)
         return list_of_commands;
 
-    // If DI is set as INTSPD                                               //TODO - leave for now
+    //FIXME - Leave both for now, due to errors from past
+    // If DI is set as INTSPD
     list_of_commands.push_back(write_parameter(slave_id, 0x53, speed));     // Set Speed value (RPM) into INTSPD0
     // if not used DI as INTSPD
-    // list_of_commands.push_back(write_parameter(slave_id, 0x140, speed)); //FIXME // Set Commanded speed to Internal Speed Command 0
-    // list_of_commands.push_back(write_parameter(slave_id, 0x92, 0));      //FIXME // Set Commanded speed to Internal Speed Command 0
+    list_of_commands.push_back(write_parameter(slave_id, 0x140, speed));    // Set Commanded speed to Internal Speed Command 0
+    list_of_commands.push_back(write_parameter(slave_id, 0x92, 0));         // Set Commanded speed to Internal Speed Command 0
 
     DEBUG_SERIAL_PRINTLN("*****************Rotate with speed*****************");
     processListoOfCommands(list_of_commands, sendFunction);
@@ -444,13 +467,15 @@ std::vector<std::vector<uint8_t>> LCDA6_Modbus_RTU::moveVelocity(uint8_t slave_i
 std::vector<std::vector<uint8_t>> LCDA6_Modbus_RTU::config_for_modbus_control_speed(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction)
 {
     std::vector<std::vector<uint8_t>> list_of_commands ;
-    // if (controlOverModbus && eControlMode == Speed)
-    //     return list_of_commands ;
+    if (controlOverModbus && eControlMode == Speed)
+        return list_of_commands ;
 
     list_of_commands.push_back(write_parameter(slave_id, 0x02, 1));         // Speed Mode       - 1 = speed
     list_of_commands.push_back(write_parameter(slave_id, 0x90, 1));         // Control Mode     - 0 - Analog \ 1 = Communication (extended)
 
     list_of_commands.push_back(write_parameter(slave_id, 0x05, 3));         // Analog / Internal speed selector
+    list_of_commands.push_back(write_parameter(slave_id, 0x1A7, 0x0801));   // Save parameters
+
 
     eControlMode = Speed ;
     DEBUG_SERIAL_PRINTLN("*****************Config for modbus control*****************");

@@ -19,6 +19,7 @@
 
 enum servomode
 {
+    undefined,
     Speed,
     Position,
     Torque,
@@ -41,14 +42,14 @@ class LCDA6_Modbus_RTU
         uint16_t RatedSpeed ;
         uint16_t MaxSpeed ;
         uint32_t PositionOffsetOfAbsolutEncoder ;
-        uint16_t controlOverModbus;
+        bool controlOverModbus;
         int64_t encoder_resolution = 8388600 ;
         int64_t pulse_per_rotation = 10000 ;
         bool lower16_bit_first = true ;
         //Absolute position stored in instance
         int64_t ActualAbsolutePosition;
         int16_t ActualSpeedRpm ;
-        servomode eControlMode ;
+        servomode eControlMode = servomode::undefined;
 
     public :
         LCDA6_Modbus_RTU();
@@ -109,12 +110,12 @@ class LCDA6_Modbus_RTU
         std::vector<uint8_t> write_parameter_32(uint8_t slave_id, uint16_t address, int32_t value, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
 
 
-        std::vector<std::vector<uint8_t>>  servo_config(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
+        std::vector<std::vector<uint8_t>> servo_config(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
         /// @brief Read all important parameters from servo and store in the instance of class variables
         /// @param slave_id Servo addres
         /// @param sendFunction provide function for sending RS-485
         /// @return multiple vector of byte
-        std::vector<std::vector<uint8_t>>  read_servo_brief(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
+        std::vector<std::vector<uint8_t>> read_servo_brief(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
         /// @brief Read actual absoulte positon from servo encoder
         /// @param slave_id Servo addres
         /// @param sendFunction provide function for sending RS-485
