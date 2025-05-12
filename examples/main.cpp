@@ -146,7 +146,7 @@ std::vector<uint8_t> send(std::string request, bool print, uint8_t frameSize)
         boost::asio::serial_port serial(io, "/dev/ttyUSB0"); // Change to your port
 
         // Set serial port parameters
-        serial.set_option(boost::asio::serial_port_base::baud_rate(9600));
+        serial.set_option(boost::asio::serial_port_base::baud_rate(57600));
         serial.set_option(boost::asio::serial_port_base::character_size(8));
         serial.set_option(boost::asio::serial_port_base::parity(boost::asio::serial_port_base::parity::none));
         serial.set_option(boost::asio::serial_port_base::stop_bits(boost::asio::serial_port_base::stop_bits::one));
