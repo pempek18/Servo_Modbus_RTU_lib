@@ -17,7 +17,7 @@
 #include <sstream>
 #include <functional>
 
-enum servomode 
+enum servomode
 {
     Speed,
     Position,
@@ -30,9 +30,9 @@ enum servomode
 
 class LCDA630P_Modbus_RTU
 {
-    private : 
+    private :
         //inital parameters
-        uint16_t MotorNumber ; 
+        uint16_t MotorNumber ;
         uint16_t RatedVoltage ;
         uint16_t RatedPower ;
         uint16_t RatedCurrent ;
@@ -44,12 +44,12 @@ class LCDA630P_Modbus_RTU
         uint16_t controlOverModbus;
         int64_t encoder_resolution = 8388600 ;
         int64_t pulse_per_rotation = 10000 ;
-        bool lower16_bit_first = true ; 
+        bool lower16_bit_first = true ;
         //Absolute position stored in instance
         int64_t ActualAbsolutePosition;
-        int16_t ActualSpeedRpm ; 
-        servomode eControlMode ; 
-    
+        int16_t ActualSpeedRpm ;
+        servomode eControlMode ;
+
     public :
         LCDA630P_Modbus_RTU();
         void scan_devices();
@@ -58,11 +58,11 @@ class LCDA630P_Modbus_RTU
         /// @param print print enable
         void debug_print_frame(std::vector<uint8_t> frame, bool print=true);
         /// @brief poin address of list of command, to process them
-        /// @param listOfCommands Addres of sequence of frames 
+        /// @param listOfCommands Addres of sequence of frames
         /// @param sendFunction provide function for sending RS-485
         /// @return values in response to list of command
-        std::vector<int32_t> processListoOfCommands(std::vector<std::vector<uint8_t>>& listOfCommands,  std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);        
-        /// @brief Read specific parameter form servo 
+        std::vector<int32_t> processListoOfCommands(std::vector<std::vector<uint8_t>>& listOfCommands,  std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
+        /// @brief Read specific parameter form servo
         /// @param slave_id Servo addres
         /// @param group_number PXX-YY - XX - group number
         /// @param parameter_offset PXX-YY - YY - parameter offset
@@ -81,7 +81,7 @@ class LCDA630P_Modbus_RTU
         /// @param slave_id Servo addres
         /// @param group_number PXX-YY - XX - group number
         /// @param parameter_offset PXX-YY - YY - parameter offset
-        /// @param value 
+        /// @param value
         /// @return a vector of bytes that make up one frame
         std::vector<uint8_t> write_parameter(uint8_t slave_id, uint8_t group_number, uint8_t parameter_offset, int16_t value);
         /// @brief Write specific parameter to servo with given send function
@@ -96,9 +96,9 @@ class LCDA630P_Modbus_RTU
         /// @param slave_id Servo addres
         /// @param group_number PXX-YY - XX - group number
         /// @param parameter_offset PXX-YY - YY - parameter offset
-        /// @param value 
+        /// @param value
         /// @return a vector of bytes that make up one frame
-        std::vector<uint8_t> write_parameter_32(uint8_t slave_id, uint8_t group_number, uint8_t parameter_offset, int32_t value);        
+        std::vector<uint8_t> write_parameter_32(uint8_t slave_id, uint8_t group_number, uint8_t parameter_offset, int32_t value);
         /// @brief  Write specific parameter 32 bit to servo with given send function
         /// @param slave_id Servo addres
         /// @param group_number PXX-YY - XX - group number
@@ -106,7 +106,7 @@ class LCDA630P_Modbus_RTU
         /// @param value value to write
         /// @param sendFunction provide function for sending RS-485
         /// @return a vector of bytes that make up one frame
-        std::vector<uint8_t> write_parameter_32(uint8_t slave_id, uint8_t group_number, uint8_t parameter_offset, int32_t value, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);        
+        std::vector<uint8_t> write_parameter_32(uint8_t slave_id, uint8_t group_number, uint8_t parameter_offset, int32_t value, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
         /// @brief Read all important parameters from servo and store in the instance of class variables
         /// @param slave_id Servo addres
         /// @param sendFunction provide function for sending RS-485
@@ -122,7 +122,7 @@ class LCDA630P_Modbus_RTU
         /// @param sendFunction  provide function for sending RS-485
         /// @return actual position
         int16_t get_speed(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
-        /// @brief Sample from manual how to make one rotation without any functions 
+        /// @brief Sample from manual how to make one rotation without any functions
         /// @param slave_id Servo addres
         /// @return vector of mupliple frames
         std::vector<std::vector<uint8_t>>  raw_one_rotation(uint8_t slave_id);
@@ -150,28 +150,28 @@ class LCDA630P_Modbus_RTU
         /// @param sendFunction provide function for sending RS-485
         /// @return  vector of mupliple frames
         std::vector<std::vector<uint8_t>>  set_torque(uint8_t slave_id, int32_t torque, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
-        /// @brief Setup servodrive to working in position mode 
+        /// @brief Setup servodrive to working in position mode
         /// @param slave_id Servo addres
         /// @param sendFunction provide function for sending RS-485
         /// @return vector of mupliple frames
         std::vector<std::vector<uint8_t>>  config_for_modbus_control_position(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
-        /// @brief Setup servodrive to working in speed mode 
+        /// @brief Setup servodrive to working in speed mode
         /// @param slave_id Servo addres
         /// @param sendFunction provide function for sending RS-485
-        /// @return  vector of mupliple frames      
+        /// @return  vector of mupliple frames
         std::vector<std::vector<uint8_t>>  config_for_modbus_control_speed(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
-        /// @brief Send Disable to servo to take off power form motor 
+        /// @brief Send Disable to servo to take off power form motor
         /// @param slave_id Servo addres
         /// @param sendFunction provide function for sending RS-485
         /// @return confirmation of servo beeing disable
         bool disable(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
-        /// @brief Convert a vector of bytes that make up one frame to string 
+        /// @brief Convert a vector of bytes that make up one frame to string
         /// @param frame to send
-        /// @return string 
+        /// @return string
         std::string vector_to_string(std::vector<uint8_t> frame);
         /// @brief parse response and print as readable on command line, return response value
-        /// @param frame given in response of send function 
-        /// @return 
+        /// @param frame given in response of send function
+        /// @return
         int32_t parseModbusResponse(const std::vector<uint8_t>& response) ;
         /// @brief Calculatr crc for send request
         /// @param data frame without data
