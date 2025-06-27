@@ -200,14 +200,11 @@ std::vector<std::vector<uint8_t>> LCDA6_Modbus_RTU::servo_config(uint8_t slave_i
 
     std::vector<std::vector<uint8_t>> list_of_commands;
 
-    int16_t DI_cfg = 1 << 0;                                            // Set Enable Bit
-    list_of_commands.push_back(write_parameter(slave_id, 0x1A0, DI_cfg));
-
     // DI configuration SPEED MODE
-    list_of_commands.push_back(write_parameter(slave_id, 0x80, 0));
-    list_of_commands.push_back(write_parameter(slave_id, 0x81, 1));
-    list_of_commands.push_back(write_parameter(slave_id, 0x82, 2));
-    list_of_commands.push_back(write_parameter(slave_id, 0x83, 3));
+    list_of_commands.push_back(write_parameter(slave_id, 0x80, 0));     // DI: ENABLE
+    list_of_commands.push_back(write_parameter(slave_id, 0x81, 1));     // DI: ALARM RELEASE
+    list_of_commands.push_back(write_parameter(slave_id, 0x82, 2));     // DI: CLOCKWISE LIMIT
+    list_of_commands.push_back(write_parameter(slave_id, 0x83, 3));     // DI: COUNTERCLOCKWISE LIMIT
     list_of_commands.push_back(write_parameter(slave_id, 0x84, 5));
     list_of_commands.push_back(write_parameter(slave_id, 0x85, 7));
     list_of_commands.push_back(write_parameter(slave_id, 0x86, 11));
@@ -221,7 +218,6 @@ std::vector<std::vector<uint8_t>> LCDA6_Modbus_RTU::servo_config(uint8_t slave_i
     list_of_commands.push_back(write_parameter(slave_id, 0x8D, 5));
 
     list_of_commands.push_back(write_parameter(slave_id, 0x90,  1));    // Control Mode - 1 = Communication (extended)
-
 
     std::vector<int32_t> values ;
     DEBUG_SERIAL_PRINTLN("*****************Write Config*****************")
@@ -428,7 +424,6 @@ std::vector<std::vector<uint8_t>> LCDA6_Modbus_RTU::moveVelocity(uint8_t slave_i
     list_of_commands.push_back(write_parameter(slave_id, 0x53, speed));     // Set Speed value (RPM) into INTSPD0
     // if not used DI as INTSPD
     list_of_commands.push_back(write_parameter(slave_id, 0x140, speed));    // Set Commanded speed to Internal Speed Command 0
-    list_of_commands.push_back(write_parameter(slave_id, 0x92, 0));         // Set Commanded speed to Internal Speed Command 0
 
     DEBUG_SERIAL_PRINTLN("*****************Rotate with speed*****************");
     processListoOfCommands(list_of_commands, sendFunction);
@@ -470,10 +465,23 @@ std::vector<std::vector<uint8_t>> LCDA6_Modbus_RTU::config_for_modbus_control_sp
     if (controlOverModbus && eControlMode == Speed)
         return list_of_commands ;
 
-    list_of_commands.push_back(write_parameter(slave_id, 0x02, 1));         // Speed Mode       - 1 = speed
-    list_of_commands.push_back(write_parameter(slave_id, 0x90, 1));         // Control Mode     - 0 - Analog \ 1 = Communication (extended)
+    list_of_commands.push_back(write_parameter(slave_id, 0x02, 1));         //(R) Speed Mode    - 1 = speed
+    list_of_commands.push_back(write_parameter(slave_id, 0x90, 1));         // Control Mode     - 0 = Analog / 1 = Communication (extended)
 
     list_of_commands.push_back(write_parameter(slave_id, 0x05, 3));         // Analog / Internal speed selector
+    list_of_commands.push_back(write_parameter(slave_id, 0x92, 0));         // Set Commanded speed to Internal Speed Command 0
+
+    int16_t DI_cfg = (1 << 0) | (1 << 1);                                   // DI Config        - (0) enable, (1) alarm release
+    list_of_commands.push_back(write_parameter(slave_id, 0x1A0, DI_cfg));   // Set DI source    - 0 = wiring / 1 = communication
+    // list_of_commands.push_back(write_parameter(slave_id, 0x1A5, 0x00));  // Set DI mask      - 1 = Input OFF
+
+    // Limit stroke
+    list_of_commands.push_back(write_parameter(slave_id, 0x04, 0x00));      //(R) Enable traveling limit setting
+    list_of_commands.push_back(write_parameter(slave_id, 0x06, 0x02));      // Enable Zero-speed clamp setting
+    list_of_commands.push_back(write_parameter(slave_id, 0x66, 0x01));      //(R) Setting of alarm timing setting of stroke limit - DIRECTION!!!
+    list_of_commands.push_back(write_parameter(slave_id, 0x8E, 0x00));      //(R) DI polarity      - 0 = NO / 1 = NC
+
+
     list_of_commands.push_back(write_parameter(slave_id, 0x1A7, 0x0801));   // Save parameters
 
 
@@ -487,7 +495,7 @@ bool LCDA6_Modbus_RTU::enable(uint8_t slave_id, std::function<std::vector<uint8_
 {
     std::vector<std::vector<uint8_t>> list_of_commands;
     // The parameter 0x80 must equal to 0 to enable
-    list_of_commands.push_back(write_parameter(slave_id, 0x1A4, 1));
+    list_of_commands.push_back(write_parameter(slave_id, 0x1A4, 0x03));     // Set communication inputs (enable, alarm release)
 
     DEBUG_SERIAL_PRINTLN("*****************Enable*****************");
     processListoOfCommands(list_of_commands, sendFunction);
@@ -499,7 +507,7 @@ bool LCDA6_Modbus_RTU::disable(uint8_t slave_id, std::function<std::vector<uint8
 {
     std::vector<std::vector<uint8_t>> list_of_commands;
     // The parameter 0x80 must equal to 0 to disable
-    list_of_commands.push_back(write_parameter(slave_id, 0x1A4, 0));
+    list_of_commands.push_back(write_parameter(slave_id, 0x1A4, 0x00));    // Reset inputs
 
     DEBUG_SERIAL_PRINTLN("*****************Disable*****************");
     processListoOfCommands(list_of_commands, sendFunction);
