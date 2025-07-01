@@ -82,7 +82,7 @@ int main()
         }    
         case 'p' :
         {
-            int64_t pos = servo.get_actual_position(1, send_wrapper);
+            int64_t pos = servo.get_actual_mechanical_position(1, send_wrapper);
             std::cout << "Actual Absolut position is : " << std::dec << pos << " hex : 0x" << std::hex << pos << " bin : 0b" << std::bitset<64>(pos) << std::endl ;
             break;
         }   
@@ -91,7 +91,7 @@ int main()
             std::cout << "Press any key to stop position polling..." << std::endl;
             while (true) {
                 system("clear");
-                int64_t pos = servo.get_actual_position(1, send_wrapper);
+                int64_t pos = servo.get_actual_mechanical_position(1, send_wrapper);
                 std::cout << "\rActual Absolute position is : " << std::dec << pos << " hex : 0x" << std::hex << pos << std::flush;
                 
                 // Check if key is pressed (non-blocking)
@@ -104,11 +104,11 @@ int main()
             }
             std::cout << std::endl; // New line after loop ends
             break;
-        }
-        case 'v' :
+        }         
+        case 'c' :
         {
-            uint64_t pos = servo.get_actual_position(1, send_wrapper);
-            std::cout << "Actual Absolut position is : " << std::dec <<  pos << " hex : 0x" << std::hex << pos << std::endl ;
+            int64_t pos = servo.get_actual_pulse_position(1, send_wrapper);
+            std::cout << "Actual Absolut position is : " << std::dec << pos << " hex : 0x" << std::hex << pos << " bin : 0b" << std::bitset<64>(pos) << std::endl ;
             break;
         }           
         case 't' :

@@ -54,6 +54,7 @@ class LCDA630P_Modbus_RTU
         bool lower16_bit_first = true ; 
         //Absolute position stored in instance
         int64_t ActualAbsolutePosition;
+        int64_t ActualPulseCounterPosition ;
         int16_t ActualSpeedRpm ; 
         servomode eControlMode ; 
         Converter64 converter;
@@ -124,12 +125,17 @@ class LCDA630P_Modbus_RTU
         /// @param slave_id Servo addres
         /// @param sendFunction provide function for sending RS-485
         /// @return actual position
-        int64_t get_actual_position(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
+        int64_t get_actual_mechanical_position(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
+        /// @brief Read actual absoulte positon from Input instruction pulse counter
+        /// @param slave_id Servo addres
+        /// @param sendFunction provide function for sending RS-485
+        /// @return actual position
+        int64_t get_actual_pulse_position(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);        
         /// @brief Get actual speed of servo rotating
         /// @param slave_id Servo addres
         /// @param sendFunction  provide function for sending RS-485
-        /// @return actual position
-        int16_t get_speed(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
+        /// @return actual position        
+        int16_t get_speed(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);        
         /// @brief Sample from manual how to make one rotation without any functions 
         /// @param slave_id Servo addres
         /// @return vector of mupliple frames

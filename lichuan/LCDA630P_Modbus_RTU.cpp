@@ -222,7 +222,7 @@ std::vector<std::vector<uint8_t>> LCDA630P_Modbus_RTU::read_servo_brief(uint8_t 
 
     return list_of_commands;
 }
-int64_t LCDA630P_Modbus_RTU::get_actual_position(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction)
+int64_t LCDA630P_Modbus_RTU::get_actual_mechanical_position(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction)
 {
     std::vector<std::vector<uint8_t>> list_of_commands;
     list_of_commands.push_back(read_parameter(slave_id, 11, 77, 9));
@@ -235,6 +235,13 @@ int64_t LCDA630P_Modbus_RTU::get_actual_position(uint8_t slave_id, std::function
     converter.as_int32[1]  = values[1] ;
     ActualAbsolutePosition = converter.as_int64 ;
     return ActualAbsolutePosition;
+}
+int64_t LCDA630P_Modbus_RTU::get_actual_pulse_position(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction)
+{
+    ActualAbsolutePosition = get_actual_mechanical_position(slave_id, sendFunction);
+    float position =  (float)ActualAbsolutePosition / (float)encoder_resolution  * (float)pulse_per_rotation;
+    ActualPulseCounterPosition = (int64_t)position;
+    return ActualPulseCounterPosition;
 }
 int16_t LCDA630P_Modbus_RTU::get_speed(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction)
 {
@@ -379,20 +386,16 @@ std::vector<std::vector<uint8_t>> LCDA630P_Modbus_RTU::moveRelative(uint8_t slav
 int64_t LCDA630P_Modbus_RTU::moveAbsolute(uint8_t slave_id, int64_t position, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction)
 {
     config_for_modbus_control_position(1, sendFunction);
-    get_actual_position(slave_id, sendFunction);
-    int64_t diffToPos = (position - ActualAbsolutePosition);
+    ActualPulseCounterPosition = get_actual_pulse_position(slave_id, sendFunction);
+    int64_t diffToPos = (position - ActualPulseCounterPosition);
     std::stringstream ss ;
-        ss << "Absolute Position " << std::dec << ActualAbsolutePosition << std::endl ;
+        ss << "Absolute Position " << std::dec << ActualPulseCounterPosition << std::endl ;
         ss << "Setpoint Position " << std::dec << position << std::endl ;
-        ss << "Difference in position: " << std::dec << diffToPos << std::endl ;
-    float fDiffToPos = ((float)diffToPos / (float)encoder_resolution) * (float)pulse_per_rotation ;
-        ss << "Difference in position float: " << fDiffToPos << std::endl ;    
-    diffToPos = (int64_t)fDiffToPos ;
-        ss << "Move absolut difference: " << std::dec << diffToPos << std::endl ;
+        ss << "Difference in position: " << std::dec << diffToPos << std::endl ; 
     DEBUG_SERIAL_PRINTLN(ss.str().c_str());
     moveRelative(slave_id, (int32_t)diffToPos, sendFunction);
-    get_actual_position(slave_id, sendFunction);
-    return ActualAbsolutePosition ;
+    ActualPulseCounterPosition = get_actual_pulse_position(slave_id, sendFunction);
+    return ActualPulseCounterPosition ;
 }
 std::vector<std::vector<uint8_t>> LCDA630P_Modbus_RTU::moveVelocity(uint8_t slave_id, int32_t speed, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction)
 {
@@ -428,8 +431,8 @@ std::vector<std::vector<uint8_t>> LCDA630P_Modbus_RTU::config_for_modbus_control
     list_of_commands.push_back(write_parameter(1,0x17,0,1));//VDI1 Terminal function selection
     list_of_commands.push_back(write_parameter(1,0x17,2,28));//VDI2 Terminal function selection
     list_of_commands.push_back(write_parameter(1,0x2,0,1));//Control Mode Selectio 1: position mod
-    list_of_commands.push_back(write_parameter(1,0x5,0,2));//Control Mode Selectio 1: position mod
-    list_of_commands.push_back(write_parameter(1,0x5,2,10000));//Location instruction source multi-segment position instruction give
+    // list_of_commands.push_back(write_parameter(1,0x5,0,2));//Control Mode Selectio 1: position mod
+    // list_of_commands.push_back(write_parameter(1,0x5,2,10000));//Location instruction source multi-segment position instruction give
     list_of_commands.push_back(write_parameter(1,0x11,0,2));//Multi-segment location operation mode Sequential operation (P11-01 for selection of segment number)
     eControlMode = Position ; 
     DEBUG_SERIAL_PRINTLN("*****************Config for modbus control*****************");
