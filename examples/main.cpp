@@ -1,6 +1,9 @@
 #include <iostream>
 #include <iomanip>
+#include <bitset>
 #include <boost/asio.hpp>
+#include <chrono>
+#include <thread>
 #include "LCDA630P_Modbus_RTU.hpp"
 
 void send_request_over_serial(std::string request);
@@ -80,9 +83,28 @@ int main()
         case 'p' :
         {
             int64_t pos = servo.get_actual_position(1, send_wrapper);
-            std::cout << "Actual Absolut position is : " << std::dec <<  pos << " hex : 0x" << std::hex << pos << std::endl ;
+            std::cout << "Actual Absolut position is : " << std::dec << pos << " hex : 0x" << std::hex << pos << " bin : 0b" << std::bitset<64>(pos) << std::endl ;
             break;
         }   
+        case 'o' :
+        {
+            std::cout << "Press any key to stop position polling..." << std::endl;
+            while (true) {
+                system("clear");
+                int64_t pos = servo.get_actual_position(1, send_wrapper);
+                std::cout << "\rActual Absolute position is : " << std::dec << pos << " hex : 0x" << std::hex << pos << std::flush;
+                
+                // Check if key is pressed (non-blocking)
+                if (std::cin.rdbuf()->in_avail()) {
+                    std::cin.get(); // Clear the input buffer
+                    break;
+                }
+                
+                std::this_thread::sleep_for(std::chrono::milliseconds(200)); // Small delay to prevent excessive CPU usage
+            }
+            std::cout << std::endl; // New line after loop ends
+            break;
+        }
         case 'v' :
         {
             uint64_t pos = servo.get_actual_position(1, send_wrapper);
@@ -146,7 +168,7 @@ std::vector<uint8_t> send(std::string request, bool print, uint8_t frameSize)
         boost::asio::serial_port serial(io, "/dev/ttyUSB0"); // Change to your port
 
         // Set serial port parameters
-        serial.set_option(boost::asio::serial_port_base::baud_rate(9600));
+        serial.set_option(boost::asio::serial_port_base::baud_rate(57600));
         serial.set_option(boost::asio::serial_port_base::character_size(8));
         serial.set_option(boost::asio::serial_port_base::parity(boost::asio::serial_port_base::parity::none));
         serial.set_option(boost::asio::serial_port_base::stop_bits(boost::asio::serial_port_base::stop_bits::one));

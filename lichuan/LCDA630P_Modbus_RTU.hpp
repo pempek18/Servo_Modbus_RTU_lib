@@ -17,6 +17,13 @@
 #include <sstream>
 #include <functional>
 
+union Converter64 {
+    int64_t as_int64;
+    int32_t as_int32[2];
+    int16_t as_int16[4];
+    uint8_t as_uint8[8];
+};
+
 enum servomode 
 {
     Speed,
@@ -42,13 +49,14 @@ class LCDA630P_Modbus_RTU
         uint16_t MaxSpeed ;
         uint32_t PositionOffsetOfAbsolutEncoder ;
         uint16_t controlOverModbus;
-        int64_t encoder_resolution = 8388600 ;
+        int64_t encoder_resolution = 8388608 ;
         int64_t pulse_per_rotation = 10000 ;
         bool lower16_bit_first = true ; 
         //Absolute position stored in instance
         int64_t ActualAbsolutePosition;
         int16_t ActualSpeedRpm ; 
         servomode eControlMode ; 
+        Converter64 converter;
     
     public :
         LCDA630P_Modbus_RTU();
@@ -61,7 +69,7 @@ class LCDA630P_Modbus_RTU
         /// @param listOfCommands Addres of sequence of frames 
         /// @param sendFunction provide function for sending RS-485
         /// @return values in response to list of command
-        std::vector<int32_t> processListoOfCommands(std::vector<std::vector<uint8_t>>& listOfCommands,  std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);        
+        std::vector<int32_t> processListOfCommands(std::vector<std::vector<uint8_t>>& listOfCommands,  std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);        
         /// @brief Read specific parameter form servo 
         /// @param slave_id Servo addres
         /// @param group_number PXX-YY - XX - group number
