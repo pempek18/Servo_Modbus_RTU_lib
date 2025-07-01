@@ -16,6 +16,7 @@
 #include <iomanip>
 #include <sstream>
 #include <functional>
+#include <cmath>
 
 union Converter64 {
     int64_t as_int64;
@@ -163,7 +164,7 @@ class LCDA630P_Modbus_RTU
         /// @param torque setpoint torque in Nm
         /// @param sendFunction provide function for sending RS-485
         /// @return  vector of mupliple frames
-        std::vector<std::vector<uint8_t>>  set_torque(uint8_t slave_id, int32_t torque, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
+        std::vector<std::vector<uint8_t>>  set_torque(uint8_t slave_id, float torque, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
         /// @brief Setup servodrive to working in position mode 
         /// @param slave_id Servo addres
         /// @param sendFunction provide function for sending RS-485

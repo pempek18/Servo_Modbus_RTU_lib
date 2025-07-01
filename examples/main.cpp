@@ -115,7 +115,8 @@ int main()
         {
             std::cout << "Type Torque[%]" << std::endl ;
             std::cin >> s ;      
-            int32_t torque = std::stoi(s);  
+            std::replace(s.begin(), s.end(), ',', '.');
+            float torque = std::stof(s);  
             std::vector<std::vector<uint8_t>> config = servo.set_torque(1, torque, send_wrapper);
             break;
         }

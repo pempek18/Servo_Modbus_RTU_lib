@@ -411,16 +411,27 @@ std::vector<std::vector<uint8_t>> LCDA630P_Modbus_RTU::moveVelocity(uint8_t slav
     DEBUG_SERIAL_PRINTLN("*****************Rotate with speed*****************");
     return list_of_commands;
 }
-std::vector<std::vector<uint8_t>> LCDA630P_Modbus_RTU::set_torque(uint8_t slave_id, int32_t torque, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction)
+std::vector<std::vector<uint8_t>> LCDA630P_Modbus_RTU::set_torque(uint8_t slave_id, float torque, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction)
 {
+    // Convert torque percentage to int16_t with bounds checking
+    float scaled_torque = torque * 10.0f;
+    int16_t value;
+    
+    if (scaled_torque > 32767.0f) {
+        value = 32767;  // Max value for int16_t
+    } else if (scaled_torque < -32768.0f) {
+        value = -32768; // Min value for int16_t
+    } else {
+        value = static_cast<int16_t>(std::round(scaled_torque));
+    }
     std::vector<std::vector<uint8_t>> list_of_commands ;
-    list_of_commands.push_back(write_parameter(1,0x07,9,torque));
-    list_of_commands.push_back(write_parameter(1,0x07,10,torque));
-    list_of_commands.push_back(write_parameter(1,0x07,11,torque));
-    list_of_commands.push_back(write_parameter(1,0x07,12,torque));
-    DEBUG_SERIAL_PRINTLN("*****************Rotate with speed*****************");
+    list_of_commands.push_back(write_parameter(1,0x07,9, value ));
+    list_of_commands.push_back(write_parameter(1,0x07,10,value ));
+    list_of_commands.push_back(write_parameter(1,0x07,11,value ));
+    list_of_commands.push_back(write_parameter(1,0x07,12,value ));
+    DEBUG_SERIAL_PRINTLN("*****************Set Torque*****************");
     processListOfCommands(list_of_commands, sendFunction); 
-    DEBUG_SERIAL_PRINTLN("*****************Rotate with speed*****************");
+    DEBUG_SERIAL_PRINTLN("*****************Set Torque*****************");
     return list_of_commands;
 }
 std::vector<std::vector<uint8_t>> LCDA630P_Modbus_RTU::config_for_modbus_control_position(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction)
