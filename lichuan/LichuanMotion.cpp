@@ -4,6 +4,7 @@ LichuanMotion::LichuanMotion()
 {
     DEBUG_SERIAL_PRINTLN("Class declared");
 }
+
 void LichuanMotion::debug_print_frame(std::vector<uint8_t> frame, bool print)
 {
     if (print)
@@ -48,7 +49,7 @@ std::vector<uint8_t> LichuanMotion::read_parameter(uint8_t slave_id, uint8_t gro
     debug_print_frame(frame, true);
 #endif
     if (sendFunction.has_value()) {
-        std::vector<uint8_t> feedback = sendFunction(frame) ;
+        std::vector<uint8_t> feedback = sendFunction.value()(frame) ;
         parseModbusResponse(feedback) ; 
     }
     return frame;
@@ -74,7 +75,7 @@ std::vector<uint8_t> LichuanMotion::read_parameter(uint8_t slave_id, uint16_t ad
 #endif
 
     if (sendFunction.has_value()) {
-        std::vector<uint8_t> feedback = sendFunction(frame) ;
+        std::vector<uint8_t> feedback = sendFunction.value()(frame) ;
         parseModbusResponse(feedback) ; 
     }
     return frame;
@@ -100,7 +101,7 @@ std::vector<uint8_t> LichuanMotion::write_parameter(uint8_t slave_id, uint8_t gr
 
     // If sendFunction is provided, send the frame and process the response
     if (sendFunction.has_value()) {
-        std::vector<uint8_t> feedback = sendFunction(frame) ;
+        std::vector<uint8_t> feedback = sendFunction.value()(frame) ;
         parseModbusResponse(feedback) ; 
     }
 
@@ -125,7 +126,7 @@ std::vector<uint8_t> LichuanMotion::write_parameter(uint8_t slave_id, uint16_t a
 #endif
 
     if (sendFunction.has_value()) {
-        std::vector<uint8_t> feedback = sendFunction(frame) ;
+        std::vector<uint8_t> feedback = sendFunction.value()(frame) ;
         parseModbusResponse(feedback) ; 
     }
     return frame;
@@ -163,7 +164,7 @@ std::vector<uint8_t> LichuanMotion::write_parameter_32(uint8_t slave_id, uint8_t
 
     // If sendFunction is provided, send the frame and process the response
     if (sendFunction.has_value()) {
-        std::vector<uint8_t> feedback = sendFunction(frame) ;
+        std::vector<uint8_t> feedback = sendFunction.value()(frame) ;
         parseModbusResponse(feedback) ; 
     }
 
@@ -202,7 +203,7 @@ std::vector<uint8_t> LichuanMotion::write_parameter_32(uint8_t slave_id, uint16_
 #endif
 
     if (sendFunction.has_value()) {
-        std::vector<uint8_t> feedback = sendFunction(frame) ;
+        std::vector<uint8_t> feedback = sendFunction.value()(frame) ;
         parseModbusResponse(feedback) ; 
     }
 
@@ -303,3 +304,81 @@ bool LichuanMotion::controledOverModbus()
     return controlOverModbus == 1 ;
 };
 
+// Virtual function implementations
+std::vector<std::vector<uint8_t>> LichuanMotion::read_servo_brief(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction)
+{
+    // Default implementation - should be overridden by derived classes
+    return std::vector<std::vector<uint8_t>>();
+}
+
+int64_t LichuanMotion::get_actual_mechanical_position(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction)
+{
+    // Default implementation - should be overridden by derived classes
+    return 0;
+}
+
+int64_t LichuanMotion::get_actual_pulse_position(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction)
+{
+    // Default implementation - should be overridden by derived classes
+    return 0;
+}
+
+int16_t LichuanMotion::get_speed(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction)
+{
+    // Default implementation - should be overridden by derived classes
+    return 0;
+}
+
+std::vector<std::vector<uint8_t>> LichuanMotion::raw_one_rotation(uint8_t slave_id)
+{
+    // Default implementation - should be overridden by derived classes
+    return std::vector<std::vector<uint8_t>>();
+}
+
+std::vector<std::vector<uint8_t>> LichuanMotion::moveRelative(uint8_t slave_id, int32_t position, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction)
+{
+    // Default implementation - should be overridden by derived classes
+    return std::vector<std::vector<uint8_t>>();
+}
+
+int64_t LichuanMotion::moveAbsolute(uint8_t slave_id, int64_t position, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction)
+{
+    // Default implementation - should be overridden by derived classes
+    return 0;
+}
+
+std::vector<std::vector<uint8_t>> LichuanMotion::moveVelocity(uint8_t slave_id, int32_t speed, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction)
+{
+    // Default implementation - should be overridden by derived classes
+    return std::vector<std::vector<uint8_t>>();
+}
+
+std::vector<std::vector<uint8_t>> LichuanMotion::set_torque(uint8_t slave_id, float torque, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction)
+{
+    // Default implementation - should be overridden by derived classes
+    return std::vector<std::vector<uint8_t>>();
+}
+
+std::vector<std::vector<uint8_t>> LichuanMotion::config_for_modbus_control_position(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction)
+{
+    // Default implementation - should be overridden by derived classes
+    return std::vector<std::vector<uint8_t>>();
+}
+
+std::vector<std::vector<uint8_t>> LichuanMotion::config_for_modbus_control_speed(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction)
+{
+    // Default implementation - should be overridden by derived classes
+    return std::vector<std::vector<uint8_t>>();
+}
+
+bool LichuanMotion::enable(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction)
+{
+    // Default implementation - should be overridden by derived classes
+    return false;
+}
+
+bool LichuanMotion::disable(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction)
+{
+    // Default implementation - should be overridden by derived classes
+    return false;
+}

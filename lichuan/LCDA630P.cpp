@@ -5,6 +5,11 @@ LCDA630P::LCDA630P()
     DEBUG_SERIAL_PRINTLN("Class declared");
 };
 
+LCDA630P::~LCDA630P()
+{
+    DEBUG_SERIAL_PRINTLN("Class destroyed");    
+};
+
 std::vector<std::vector<uint8_t>> LCDA630P::read_servo_brief(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction)
 {
     std::vector<std::vector<uint8_t>> list_of_commands;

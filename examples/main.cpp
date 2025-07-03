@@ -4,7 +4,7 @@
 #include <boost/asio.hpp>
 #include <chrono>
 #include <thread>
-#include "LCDA630P_Modbus_RTU.hpp"
+#include "LCDA630P.hpp"
 
 void send_request_over_serial(std::string request);
 std::vector<uint8_t> send(std::string request, bool print=false, uint8_t frameSize = 8);
@@ -24,7 +24,7 @@ std::vector<std::string> splitString(const std::string& str, char delimiter) {
 
 int main()
 {
-    LCDA630P_Modbus_RTU servo;
+    LCDA630P servo;
     char mode ;
     std::string s ; 
     while (true)
@@ -52,7 +52,7 @@ int main()
             else 
             {
                 uint8_t size = std::stoi(params[2]);
-                servo.read_parameter(1, paramGroup, paramOffset, send_wrapper, size);
+                servo.read_parameter(1, paramGroup, paramOffset, size, send_wrapper);
             }
             std::cout << "*****************Read Param*****************" << std::endl;  
             break; 

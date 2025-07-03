@@ -58,7 +58,7 @@ The Lichuan LCDA630 is a high-performance servo drive that can be controlled usi
     ```
 5. Use folowing comand to run at once:
     ```sh
-    clear; make; ./Lichuan_RS_Libary
+    clear; make; ./example_linux
     ```
 
 ## Documentation
