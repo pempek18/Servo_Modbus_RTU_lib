@@ -4,7 +4,7 @@ project(Lichuan_RS_Libary)
 set(CMAKE_CXX_STANDARD 17)
 
 # Add the library
-add_library(Lichuan_RS_Libary STATIC lichuan/LCDA630P_Modbus_RTU.cpp)
+add_library(Lichuan_RS_Libary STATIC lichuan/LCDA630P.cpp lichuan/LichuanMotion.cpp)
 
 # Add the example program
 add_executable(example_linux examples/main.cpp)
