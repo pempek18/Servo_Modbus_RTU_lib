@@ -208,6 +208,10 @@ std::vector<uint8_t> LichuanMotion::write_parameter_32(uint8_t slave_id, uint16_
     }
 
     return frame;
+}
+std::vector<std::vector<uint8_t>> LichuanMotion::servo_config(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction)
+{
+    return std::vector<std::vector<uint8_t>>();
 };
 
 std::string LichuanMotion::vector_to_string(std::vector<uint8_t> frame)

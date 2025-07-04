@@ -32,6 +32,7 @@ union Converter64 {
 
 enum servomode 
 {
+    undefined,
     Speed,
     Position,
     Torque,
@@ -90,7 +91,7 @@ class LichuanMotion
         /// @param size size of frame, at least 8 byte
         /// @param sendFunction provide function for sending RS-485
         /// @return a vector of bytes that make up one frame
-        std::vector<uint8_t> read_parameter(uint8_t slave_id, uint16_t address, uint16_t size, std::optional<std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)>> sendFunction = std::nullopt);
+        std::vector<uint8_t> read_parameter(uint8_t slave_id, uint16_t address, uint16_t size=2, std::optional<std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)>> sendFunction = std::nullopt);
         /// @brief Write specific parameter to servo with given send function
         /// @param slave_id Servo addres
         /// @param group_number PXX-YY - XX - group number
@@ -121,6 +122,11 @@ class LichuanMotion
         /// @param sendFunction provide function for sending RS-485
         /// @return a vector of bytes that make up one frame
         std::vector<uint8_t> write_parameter_32(uint8_t slave_id, uint16_t address, int32_t value, std::optional<std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)>> sendFunction = std::nullopt);        
+        /// @brief Configure servo to work in specific mode
+        /// @param slave_id Servo addres
+        /// @param sendFunction provide function for sending RS-485
+        /// @return vector of mupliple frames
+        virtual std::vector<std::vector<uint8_t>>  servo_config(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
         /// @brief Read all important parameters from servo and store in the instance of class variables
         /// @param slave_id Servo addres
         /// @param sendFunction provide function for sending RS-485

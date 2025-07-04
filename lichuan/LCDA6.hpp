@@ -1,14 +1,17 @@
-#ifndef LCDA630P_MODBUS_RTU_HPP
-#define LCDA630P_MODBUS_RTU_HPP
+#ifndef LCDA6_HPP
+#define LCDA6_HPP
 
 #include "LichuanMotion.hpp"
 
-
-class LCDA630P : public LichuanMotion
+class LCDA6 : public LichuanMotion
 {
-    public : 
-        LCDA630P();
-        ~LCDA630P();
+    private :
+        servomode eControlMode = servomode::undefined;
+
+    public :
+        LCDA6();
+        ~LCDA6();
+        std::vector<std::vector<uint8_t>>  servo_config(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
         std::vector<std::vector<uint8_t>>  read_servo_brief(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
         int64_t get_actual_mechanical_position(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction);
         int64_t get_actual_pulse_position(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction);
@@ -24,4 +27,4 @@ class LCDA630P : public LichuanMotion
         bool disable(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
 };
 
-#endif // LCDA630P_HPP
+#endif // LCDA6_HPP
