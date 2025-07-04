@@ -57,7 +57,18 @@ std::vector<std::vector<uint8_t>> LCDA6::read_servo_brief(uint8_t slave_id, std:
 }
 int64_t LCDA6::get_actual_mechanical_position(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction)
 {
-    return 0;
+    std::vector<std::vector<uint8_t>> list_of_commands;
+    list_of_commands.push_back(read_parameter(slave_id, 0x1BC));
+    list_of_commands.push_back(read_parameter(slave_id, 0x1BD));
+    std::vector<int32_t> values ;
+    DEBUG_SERIAL_PRINTLN("*****************Read Absolute Position*****************");
+    values = processListOfCommands(list_of_commands, sendFunction);         
+    DEBUG_SERIAL_PRINTLN("*****************Read Absolute Position*****************");
+    converter.as_int64 = 0 ;
+    converter.as_int16[0]  = values[0] ;
+    converter.as_int16[1]  = values[1] ;
+    ActualAbsolutePosition = converter.as_int32[0] ;
+    return ActualAbsolutePosition;
 }
 int64_t LCDA6::get_actual_pulse_position(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction)
 {
@@ -108,7 +119,23 @@ std::vector<std::vector<uint8_t>> LCDA6::moveVelocity(uint8_t slave_id, int32_t 
 }
 std::vector<std::vector<uint8_t>> LCDA6::set_torque(uint8_t slave_id, float torque, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction)
 {
-    return std::vector<std::vector<uint8_t>>();
+    std::vector<std::vector<uint8_t>> list_of_commands ;
+    if (!controlOverModbus)
+        return list_of_commands;
+
+    if (torque > 100)
+        torque = 100;
+    if (torque < 0)
+        torque = 0;
+
+    list_of_commands.push_back(write_parameter(slave_id, 0x5E, torque * 25));     // 1st torque limit
+    list_of_commands.push_back(write_parameter(slave_id, 0x12C, torque * 25));    // Internal torque command 0
+    
+
+    DEBUG_SERIAL_PRINTLN("*****************Rotate with speed*****************");
+    processListOfCommands(list_of_commands, sendFunction);
+    DEBUG_SERIAL_PRINTLN("*****************Rotate with speed*****************");
+    return list_of_commands;
 }
 std::vector<std::vector<uint8_t>> LCDA6::config_for_modbus_control_position(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction)
 {
