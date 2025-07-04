@@ -1,6 +1,6 @@
 # Lichuan LCDA630 Modbus RTU
 
-This project is designed to run the Lichuan LCDA630 Servo using Modbus RTU protocol.
+This project is designed to run the Lichuan Servo using Modbus RTU protocol.
 
 ## Overview
 
@@ -8,15 +8,16 @@ The Lichuan LCDA630 is a high-performance servo drive that can be controlled usi
 
 ## Features
 
-- Control Lichuan LCDA630 Servo via Modbus RTU
-- Example code for basic operations
+- Control Lichuan LCDA630P Servo via Modbus RTU
+- Control Lichuan LCDA6
+- Example code for basic operations to run in linux, for example raspberry pi
 - Configuration instructions
 
 ## Getting Started
 
 ### Prerequisites
 
-- Lichuan LCDA630 Servo Drive
+- Lichuan LCDA630P or LCDA6 Servo Drive
 - RS485 to USB converter (or equivalent)
 - Computer with a serial port or USB port
 - Modbus RTU library (e.g., pymodbus for Python)
@@ -53,20 +54,21 @@ The Lichuan LCDA630 is a high-performance servo drive that can be controlled usi
     ```
 4. Run the program:
     ```sh
-    make
-    ./Lichuan_RS_Libary
+    clear; make; ./example_linux_LCDA6
+    clear; make; ./example_linux_LCDA6
     ```
-5. Use folowing comand to run at once:
+5. workflow with rasp
     ```sh
-    clear; make; ./example_linux
-    ```
+    clear; scp -r C:\git_workspace\Lichuan_LCDA630_Modbus_RTU\lichuan\  C:\git_workspace\Lichuan_LCDA630_Modbus_RTU\examples\ C:\git_workspace\Lichuan_LCDA630_Modbus_RTU\CMakeLists.txt user@10.0.10.104:/home/user/git_workspace/Lichuan_LCDA630_Modbus_RTU/
 
+    ssh user@10.0.10.104
+    ```
 ## Documentation
 
 For detailed documentation on the Modbus RTU protocol and the Lichuan LCDA630 Servo Drive, refer to the official manuals and datasheets provided by the manufacturer.
 
 ## Contributing
-
+@tuptusstokrotka 
 Contributions are welcome! Please fork the repository and submit a pull request with your changes.
 
 ## License

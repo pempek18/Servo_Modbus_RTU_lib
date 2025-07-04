@@ -205,7 +205,7 @@ std::vector<uint8_t> send(std::string request, bool print, uint8_t frameSize)
         // Set serial port parameters
         serial.set_option(boost::asio::serial_port_base::baud_rate(57600));
         serial.set_option(boost::asio::serial_port_base::character_size(8));
-        serial.set_option(boost::asio::serial_port_base::parity(boost::asio::serial_port_base::parity::none));
+        serial.set_option(boost::asio::serial_port_base::parity(boost::asio::serial_port_base::parity::even));
         serial.set_option(boost::asio::serial_port_base::stop_bits(boost::asio::serial_port_base::stop_bits::one));
 
         boost::asio::write(serial, boost::asio::buffer(request));
