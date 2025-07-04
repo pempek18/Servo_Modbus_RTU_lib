@@ -20,6 +20,8 @@
 #include <functional>
 #include <cmath>
 #include <optional>
+#include <chrono>
+#include <thread>
 
 union Converter64 {
     int64_t as_int64;
@@ -148,13 +150,13 @@ class LichuanMotion
         /// @param position number of increments to move
         /// @param sendFunction provide function for sending RS-485
         /// @return  vector of mupliple frames
-        virtual std::vector<std::vector<uint8_t>>  moveRelative(uint8_t slave_id, int32_t position,  std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
+        virtual std::vector<std::vector<uint8_t>>  moveRelative(uint8_t slave_id, int32_t position, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction, int32_t speed = 1000, float torque = 10.0);
         /// @brief Move absolut to position based on encoder position
         /// @param slave_id Servo addres
         /// @param position number of increments to move
         /// @param sendFunction provide function for sending RS-485
         /// @return vector of mupliple frames
-        virtual int64_t moveAbsolute(uint8_t slave_id, int64_t position,  std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
+        virtual int64_t moveAbsolute(uint8_t slave_id, int64_t position,  std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction, int32_t speed = 1000, float torque = 10.0);
         /// @brief Control servo in speed mode
         /// @param slave_id Servo addres
         /// @param speed setpoint speed in RPM, max 6000 set > 0 to go direction incrementic encoder and < 0 decrementig

@@ -127,11 +127,35 @@ int main()
         }
         case 'm' :
         {
-            std::cout << "Type position to move or q to quit" << std::endl ;
-            std::cin >> s ;      
-            int32_t position = std::stoi(s);  
+            std::cout << "Type position to move, speed, torque in format POSITION,SPEED,TORQUE" << std::endl ;
+            std::cin >> s ;
+            std::vector<std::string> params = splitString(s, ',');
+            int32_t position = 10000;
+            int32_t speed = 1000;
+            float torque = 10.0;
             std::vector<std::vector<uint8_t>> config = servo.config_for_modbus_control_position(1, send_wrapper);
-            std::vector<std::vector<uint8_t>> one_rot = servo.moveRelative(1, position, send_wrapper);  
+            if (params.size() == 1)
+            {
+                position = std::stoi(params[0]);
+                std::vector<std::vector<uint8_t>> one_rot = servo.moveRelative(1, position, send_wrapper);  
+            }
+            else if (params.size() == 2)
+            {
+                position = std::stoi(params[0]);
+                speed = std::stoi(params[1]);
+                std::vector<std::vector<uint8_t>> one_rot = servo.moveRelative(1, position, send_wrapper, speed);  
+            }
+            else if (params.size() == 3)    
+            {
+                position = std::stoi(params[0]);
+                speed = std::stoi(params[1]);
+                torque = std::stof(params[2]);
+                std::vector<std::vector<uint8_t>> one_rot = servo.moveRelative(1, position, send_wrapper, speed, torque);  
+            }
+            else
+            {
+                std::vector<std::vector<uint8_t>> one_rot = servo.moveRelative(1, position, send_wrapper);  
+            }
             break;
         } 
         case 'a' :

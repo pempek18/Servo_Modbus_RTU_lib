@@ -212,20 +212,25 @@ std::vector<std::vector<uint8_t>> LCDA630P::raw_one_rotation(uint8_t slave_id, s
     DEBUG_SERIAL_PRINTLN("*****************Move one rotation RAW DATA*****************");
     return list_of_commands ;
 }
-std::vector<std::vector<uint8_t>> LCDA630P::moveRelative(uint8_t slave_id, int32_t position, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction)
+std::vector<std::vector<uint8_t>> LCDA630P::moveRelative(uint8_t slave_id, int32_t position, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction, int32_t speed, float torque)
 {
     std::vector<std::vector<uint8_t>> list_of_commands ;
     if (!controlOverModbus)
         return list_of_commands;
     list_of_commands.push_back(write_parameter_32(slave_id, (uint8_t)0x11, (uint8_t)0x0C, position));//Multi-segment location operation mode Sequential operation (P11-01 for selection of segment number)
+    list_of_commands.push_back(write_parameter_32(slave_id, (uint8_t)0x31, (uint8_t)0x09, (int32_t)speed));//Communication Given Speed Command
+    list_of_commands.push_back(write_parameter_32(slave_id, (uint8_t)0x31, (uint8_t)0x11, (float)torque));//Communication given torque instruction
     list_of_commands.push_back(write_parameter(slave_id,    (uint8_t)0x31, (uint8_t)0, (uint8_t)1));//Communication given VDI virtual level 0～65535
-    list_of_commands.push_back(write_parameter(slave_id,    (uint8_t)0x31, (uint8_t)0, (uint8_t)3));//Communication given VDI virtual level 0～65535
     DEBUG_SERIAL_PRINTLN("*****************Move to pos*****************");
+    processListOfCommands(list_of_commands, sendFunction); 
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    list_of_commands.clear();
+    list_of_commands.push_back(write_parameter(slave_id,    (uint8_t)0x31, (uint8_t)0, (uint8_t)3));//Communication given VDI virtual level 0～65535
     processListOfCommands(list_of_commands, sendFunction); 
     DEBUG_SERIAL_PRINTLN("*****************Move to pos*****************");
     return list_of_commands;
 }
-int64_t LCDA630P::moveAbsolute(uint8_t slave_id, int64_t position, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction)
+int64_t LCDA630P::moveAbsolute(uint8_t slave_id, int64_t position, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction, int32_t speed, float torque)
 {
     config_for_modbus_control_position(1, sendFunction);
     ActualPulseCounterPosition = get_actual_pulse_position(slave_id, sendFunction);
@@ -235,7 +240,7 @@ int64_t LCDA630P::moveAbsolute(uint8_t slave_id, int64_t position, std::function
         ss << "Setpoint Position " << std::dec << position << std::endl ;
         ss << "Difference in position: " << std::dec << diffToPos << std::endl ; 
     DEBUG_SERIAL_PRINTLN(ss.str().c_str());
-    moveRelative(slave_id, (int32_t)diffToPos, sendFunction);
+    moveRelative(slave_id, (int32_t)diffToPos, sendFunction, speed, torque);
     ActualPulseCounterPosition = get_actual_pulse_position(slave_id, sendFunction);
     return ActualPulseCounterPosition ;
 }
@@ -284,8 +289,8 @@ std::vector<std::vector<uint8_t>> LCDA630P::config_for_modbus_control_position(u
     list_of_commands.push_back(write_parameter(1, (uint8_t)0x17, (uint8_t)0, (uint8_t)1));//VDI1 Terminal function selection
     list_of_commands.push_back(write_parameter(1, (uint8_t)0x17, (uint8_t)2, (uint8_t)28));//VDI2 Terminal function selection
     list_of_commands.push_back(write_parameter(1, (uint8_t)0x2, (uint8_t)0, (uint8_t)1));//Control Mode Selectio 1: position mod
-    // list_of_commands.push_back(write_parameter(1,0x5,0,2));//Control Mode Selectio 1: position mod
-    // list_of_commands.push_back(write_parameter(1,0x5,2,10000));//Location instruction source multi-segment position instruction give
+    list_of_commands.push_back(write_parameter(1,0x5,0,2));//Control Mode Selectio 1: position mod
+    list_of_commands.push_back(write_parameter(1,0x5,2,10000));//Number of position instructions per rotation of motor
     list_of_commands.push_back(write_parameter(1, (uint8_t)0x11, (uint8_t)0, (uint8_t)2));//Multi-segment location operation mode Sequential operation (P11-01 for selection of segment number)
     eControlMode = Position ; 
     DEBUG_SERIAL_PRINTLN("*****************Config for modbus control*****************");
