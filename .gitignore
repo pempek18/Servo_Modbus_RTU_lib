@@ -3,3 +3,4 @@ build_linux/
 external/
 datasheet/
 .vscode/
+.vscode/settings.json

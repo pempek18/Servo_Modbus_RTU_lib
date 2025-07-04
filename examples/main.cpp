@@ -29,7 +29,7 @@ int main()
     std::string s ; 
     while (true)
     {
-        std::cout << "choose what what to do: r[read], w[write], p[acutal position], t[torque], m[move], a[absolute], s[speed], d[disable], q[quit]" << std::endl ; 
+        std::cout << "choose what what to do: r[read], w[write], e[raw one rotation], p[acutal position], c[acutal pulse position], t[torque], m[move], a[absolute], s[speed], d[disable], q[quit]" << std::endl ; 
         std::cin >> mode ; 
         switch (mode)
         {
@@ -80,6 +80,11 @@ int main()
             std::cout << "*****************Write Param*****************" << std::endl;  
             break; 
         }    
+        case 'e' :
+        {
+            servo.raw_one_rotation(1, send_wrapper);
+            break;
+        }
         case 'p' :
         {
             int64_t pos = servo.get_actual_mechanical_position(1, send_wrapper);

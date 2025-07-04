@@ -28,7 +28,7 @@ std::vector<std::vector<uint8_t>> LCDA630P::read_servo_brief(uint8_t slave_id, s
     DEBUG_SERIAL_PRINTLN("*****************Read Brief*****************");
     values = processListOfCommands(list_of_commands, sendFunction);      
     DEBUG_SERIAL_PRINTLN("*****************Read Brief*****************");
-    MotorNumber = values.at(0) ; 
+    MotorNumber =  values.at(0) ; 
     RatedVoltage = values.at(1) ;
     RatedPower = values.at(2);
     RatedCurrent = values.at(3);
@@ -39,6 +39,27 @@ std::vector<std::vector<uint8_t>> LCDA630P::read_servo_brief(uint8_t slave_id, s
     PositionOffsetOfAbsolutEncoder = values.at(8);
     controlOverModbus = values.at(9);
     lower16_bit_first = values.at(10);
+
+    std::stringstream ss ;
+        ss << "MotorNumber: " << std::dec << MotorNumber << std::endl ;
+        ss << "RatedVoltage: " << std::dec << RatedVoltage << std::endl ;
+        ss << "RatedPower: " << std::dec << RatedPower << std::endl ;
+        ss << "RatedCurrent: " << std::dec << RatedCurrent << std::endl ;
+        ss << "RatedTorque: " << std::dec << RatedTorque << std::endl ;
+        ss << "MaxTorque: " << std::dec << MaxTorque << std::endl ;
+        ss << "RatedSpeed: " << std::dec << RatedSpeed << std::endl ;
+        ss << "MaxSpeed: " << std::dec << MaxSpeed << std::endl ;
+        ss << "PositionOffsetOfAbsolutEncoder: " << std::dec << PositionOffsetOfAbsolutEncoder << std::endl ;
+        ss << "controlOverModbus: " << std::dec << controlOverModbus << std::endl ;
+        ss << "lower16_bit_first: " << std::dec << lower16_bit_first << std::endl ;
+        ss << "encoder_resolution: " << std::dec << encoder_resolution << std::endl ;
+        ss << "pulse_per_rotation: " << std::dec << pulse_per_rotation << std::endl ;
+        ss << "ActualAbsolutePosition: " << std::dec << ActualAbsolutePosition << std::endl ;
+        ss << "ActualPulseCounterPosition: " << std::dec << ActualPulseCounterPosition << std::endl ;
+        ss << "ActualSpeedRpm: " << std::dec << ActualSpeedRpm << std::endl ;
+        ss << "eControlMode: " << std::dec << eControlMode << std::endl ;
+
+    DEBUG_SERIAL_PRINTLN(ss.str().c_str());
 
     return list_of_commands;
 }
@@ -74,7 +95,7 @@ int16_t LCDA630P::get_speed(uint8_t slave_id, std::function<std::vector<uint8_t>
     ActualSpeedRpm = values[0];
     return ActualSpeedRpm;
 }
-std::vector<std::vector<uint8_t>> LCDA630P::raw_one_rotation(uint8_t slave_id)
+std::vector<std::vector<uint8_t>> LCDA630P::raw_one_rotation(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction)
 {
     std::vector<std::vector<uint8_t>> list_of_commands;
     std::vector<uint8_t> frame;
@@ -184,6 +205,7 @@ std::vector<std::vector<uint8_t>> LCDA630P::raw_one_rotation(uint8_t slave_id)
     frame.push_back(0xC7);
     frame.push_back(0x37);
     list_of_commands.push_back(frame);  
+    processListOfCommands(list_of_commands, sendFunction); 
 #if DEBUG_SERIAL
     debug_print_frame(frame, true);
 #endif              
@@ -195,9 +217,9 @@ std::vector<std::vector<uint8_t>> LCDA630P::moveRelative(uint8_t slave_id, int32
     std::vector<std::vector<uint8_t>> list_of_commands ;
     if (!controlOverModbus)
         return list_of_commands;
-    list_of_commands.push_back(write_parameter_32(1, (uint8_t)0x11, (uint8_t)0x0C, position));//Multi-segment location operation mode Sequential operation (P11-01 for selection of segment number)
-    list_of_commands.push_back(write_parameter(1, (uint8_t)0x31, (uint8_t)0, (uint8_t)1));//Communication given VDI virtual level 0～65535
-    list_of_commands.push_back(write_parameter(1, (uint8_t)0x31, (uint8_t)0, (uint8_t)3));//Communication given VDI virtual level 0～65535
+    list_of_commands.push_back(write_parameter_32(slave_id, (uint8_t)0x11, (uint8_t)0x0C, position));//Multi-segment location operation mode Sequential operation (P11-01 for selection of segment number)
+    list_of_commands.push_back(write_parameter(slave_id,    (uint8_t)0x31, (uint8_t)0, (uint8_t)1));//Communication given VDI virtual level 0～65535
+    list_of_commands.push_back(write_parameter(slave_id,    (uint8_t)0x31, (uint8_t)0, (uint8_t)3));//Communication given VDI virtual level 0～65535
     DEBUG_SERIAL_PRINTLN("*****************Move to pos*****************");
     processListOfCommands(list_of_commands, sendFunction); 
     DEBUG_SERIAL_PRINTLN("*****************Move to pos*****************");

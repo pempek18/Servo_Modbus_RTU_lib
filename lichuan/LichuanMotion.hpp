@@ -6,9 +6,11 @@
     #include <iostream>
     #define DEBUG_SERIAL_PRINTLN(x) std::cout << x << std::endl;
     #define DEBUG_SERIAL_PRINT(x) std::cout << x;
+    #define DEBUG_SERIAL_PRINTF(x, ...) std::cout << x << __VA_ARGS__ << std::endl;
 #else
     #define DEBUG_SERIAL_PRINTLN(x)
     #define DEBUG_SERIAL_PRINT(x)
+    #define DEBUG_SERIAL_PRINTF(x, ...)
 #endif
 
 #include <cstdint>
@@ -140,7 +142,7 @@ class LichuanMotion
         /// @brief Sample from manual how to make one rotation without any functions 
         /// @param slave_id Servo addres
         /// @return vector of mupliple frames
-        virtual std::vector<std::vector<uint8_t>>  raw_one_rotation(uint8_t slave_id);
+        virtual std::vector<std::vector<uint8_t>>  raw_one_rotation(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);     
         /// @brief Control servo in speed mode
         /// @param slave_id Servo addres
         /// @param position number of increments to move
