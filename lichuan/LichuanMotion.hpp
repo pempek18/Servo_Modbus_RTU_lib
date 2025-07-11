@@ -134,70 +134,70 @@ class LichuanMotion
         /// @param slave_id Servo addres
         /// @param sendFunction provide function for sending RS-485
         /// @return multiple vector of byte
-        virtual std::vector<std::vector<uint8_t>>  read_servo_brief(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
+        virtual std::vector<std::vector<uint8_t>>  read_servo_brief(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction) = 0;
         /// @brief Read actual absoulte positon from servo encoder
         /// @param slave_id Servo addres
         /// @param sendFunction provide function for sending RS-485
         /// @return actual position
-        virtual int64_t get_actual_mechanical_position(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
+        virtual int64_t get_actual_mechanical_position(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction) = 0;
         /// @brief Read actual absoulte positon from Input instruction pulse counter
         /// @param slave_id Servo addres
         /// @param sendFunction provide function for sending RS-485
         /// @return actual position
-        virtual int64_t get_actual_pulse_position(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
+        virtual int64_t get_actual_pulse_position(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction) = 0;
         /// @brief Get actual speed of servo rotating
         /// @param slave_id Servo addres
         /// @param sendFunction  provide function for sending RS-485
         /// @return actual position
-        virtual int16_t get_speed(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
+        virtual int16_t get_speed(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction) = 0;
         /// @brief Sample from manual how to make one rotation without any functions
         /// @param slave_id Servo addres
         /// @return vector of mupliple frames
-        virtual std::vector<std::vector<uint8_t>>  raw_one_rotation(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
+        virtual std::vector<std::vector<uint8_t>>  raw_one_rotation(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction) = 0;
         /// @brief Control servo in speed mode
         /// @param slave_id Servo addres
         /// @param position number of increments to move
         /// @param sendFunction provide function for sending RS-485
         /// @return  vector of mupliple frames
-        virtual std::vector<std::vector<uint8_t>>  moveRelative(uint8_t slave_id, int32_t position, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction, int32_t speed = 1000, float torque = 10.0);
+        virtual std::vector<std::vector<uint8_t>>  moveRelative(uint8_t slave_id, int32_t position, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction, int32_t speed = 1000, float torque = 10.0) = 0;
         /// @brief Move absolut to position based on encoder position
         /// @param slave_id Servo addres
         /// @param position number of increments to move
         /// @param sendFunction provide function for sending RS-485
         /// @return vector of mupliple frames
-        virtual int64_t moveAbsolute(uint8_t slave_id, int64_t position,  std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction, int32_t speed = 1000, float torque = 10.0);
+        virtual int64_t moveAbsolute(uint8_t slave_id, int64_t position,  std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction, int32_t speed = 1000, float torque = 10.0) = 0;
         /// @brief Control servo in speed mode
         /// @param slave_id Servo addres
         /// @param speed setpoint speed in RPM, max 6000 set > 0 to go direction incrementic encoder and < 0 decrementig
         /// @param sendFunction provide function for sending RS-485
         /// @return vector of mupliple frames
-        virtual std::vector<std::vector<uint8_t>>  moveVelocity(uint8_t slave_id, int32_t speed, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
+        virtual std::vector<std::vector<uint8_t>>  moveVelocity(uint8_t slave_id, int32_t speed, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction) = 0;
         /// @brief Control servo in speed mode
         /// @param slave_id Servo addres
         /// @param torque setpoint torque in Nm
         /// @param sendFunction provide function for sending RS-485
         /// @return  vector of mupliple frames
-        virtual std::vector<std::vector<uint8_t>>  set_torque(uint8_t slave_id, float torque, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
+        virtual std::vector<std::vector<uint8_t>>  set_torque(uint8_t slave_id, float torque, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction) = 0;
         /// @brief Setup servodrive to working in position mode
         /// @param slave_id Servo addres
         /// @param sendFunction provide function for sending RS-485
         /// @return vector of mupliple frames
-        virtual std::vector<std::vector<uint8_t>>  config_for_modbus_control_position(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
+        virtual std::vector<std::vector<uint8_t>>  config_for_modbus_control_position(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction) = 0;
         /// @brief Setup servodrive to working in speed mode
         /// @param slave_id Servo addres
         /// @param sendFunction provide function for sending RS-485
         /// @return  vector of mupliple frames
-        virtual std::vector<std::vector<uint8_t>>  config_for_modbus_control_speed(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
+        virtual std::vector<std::vector<uint8_t>>  config_for_modbus_control_speed(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction) = 0;
         /// @brief Send Enable to servo to take on power form motor
         /// @param slave_id Servo addres
         /// @param sendFunction provide function for sending RS-485
         /// @return confirmation of servo beeing enable
-        virtual bool enable(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
+        virtual bool enable(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction) = 0;
         /// @brief Send Disable to servo to take off power form motor
         /// @param slave_id Servo addres
         /// @param sendFunction provide function for sending RS-485
         /// @return confirmation of servo beeing disable
-        virtual bool disable(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
+        virtual bool disable(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction) = 0;
         /// @brief Convert a vector of bytes that make up one frame to string
         /// @param frame to send
         /// @return string
