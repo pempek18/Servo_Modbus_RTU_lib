@@ -71,7 +71,6 @@ This project provides a complete C++ implementation for interfacing with Lichuan
     clear; make; ./example_linux_LCDA6
     ```
 4. Use the menu interface to test various servo operations:
-    - `i` - Configure servo
     - `r` - Read parameters
     - `w` - Write parameters
     - `m` - Move relative
@@ -103,7 +102,7 @@ ssh user@10.0.10.104
 For detailed documentation on the Modbus RTU protocol and the Lichuan servo drives, refer to the official manuals and datasheets provided by the manufacturer.
 
 ## Contributing
-@tuptusstokrotka 
+@tuptusstokrotka
 Contributions are welcome! Please fork the repository and submit a pull request with your changes.
 
 ## License

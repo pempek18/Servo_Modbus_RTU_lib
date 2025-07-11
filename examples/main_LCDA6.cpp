@@ -33,11 +33,6 @@ int main()
         std::cin >> mode ; 
         switch (mode)
         {
-        case 'i':
-        {
-            servo.servo_config(1, send_wrapper);
-            break;
-        }
         case 'b':
         {
             std::vector<std::vector<uint8_t>> params = servo.read_servo_brief(1, send_wrapper);

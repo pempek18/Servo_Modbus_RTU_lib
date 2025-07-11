@@ -7,7 +7,7 @@ LCDA630P::LCDA630P()
 
 LCDA630P::~LCDA630P()
 {
-    DEBUG_SERIAL_PRINTLN("Class destroyed");    
+    DEBUG_SERIAL_PRINTLN("Class destroyed");
 };
 
 std::vector<std::vector<uint8_t>> LCDA630P::read_servo_brief(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction)
@@ -26,9 +26,9 @@ std::vector<std::vector<uint8_t>> LCDA630P::read_servo_brief(uint8_t slave_id, s
     list_of_commands.push_back(read_parameter(slave_id, (uint8_t)12, (uint8_t)26));
     std::vector<int32_t> values ;
     DEBUG_SERIAL_PRINTLN("*****************Read Brief*****************");
-    values = processListOfCommands(list_of_commands, sendFunction);      
+    values = processListOfCommands(list_of_commands, sendFunction);
     DEBUG_SERIAL_PRINTLN("*****************Read Brief*****************");
-    MotorNumber =  values.at(0) ; 
+    MotorNumber =  values.at(0) ;
     RatedVoltage = values.at(1) ;
     RatedPower = values.at(2);
     RatedCurrent = values.at(3);
@@ -70,7 +70,7 @@ int64_t LCDA630P::get_actual_mechanical_position(uint8_t slave_id, std::function
     list_of_commands.push_back(read_parameter(slave_id, (uint8_t)11, (uint8_t)79, (uint8_t)9));
     std::vector<int32_t> values ;
     DEBUG_SERIAL_PRINTLN("*****************Read Absolute Position*****************");
-    values = processListOfCommands(list_of_commands, sendFunction);         
+    values = processListOfCommands(list_of_commands, sendFunction);
     DEBUG_SERIAL_PRINTLN("*****************Read Absolute Position*****************");
     converter.as_int32[0]  = values[0] ;
     converter.as_int32[1]  = values[1] ;
@@ -89,9 +89,9 @@ int16_t LCDA630P::get_speed(uint8_t slave_id, std::function<std::vector<uint8_t>
     std::vector<std::vector<uint8_t>> list_of_commands;
     list_of_commands.push_back(read_parameter(slave_id, (uint8_t)11, (uint8_t)55));
     std::vector<int32_t> values ;
-    DEBUG_SERIAL_PRINTLN("*****************Read Absolute Position*****************");
-    values = processListOfCommands(list_of_commands, sendFunction);        
-    DEBUG_SERIAL_PRINTLN("*****************Read Absolute Position*****************");   
+    DEBUG_SERIAL_PRINTLN("*****************Read Current Speed*****************");
+    values = processListOfCommands(list_of_commands, sendFunction);
+    DEBUG_SERIAL_PRINTLN("*****************Read Current Speed*****************");
     ActualSpeedRpm = values[0];
     return ActualSpeedRpm;
 }
@@ -111,7 +111,7 @@ std::vector<std::vector<uint8_t>> LCDA630P::raw_one_rotation(uint8_t slave_id, s
     list_of_commands.push_back(frame);
 #if DEBUG_SERIAL
     debug_print_frame(frame, true);
-#endif    
+#endif
     frame.clear();
     frame.push_back(slave_id);
     frame.push_back(0x06);
@@ -124,7 +124,7 @@ std::vector<std::vector<uint8_t>> LCDA630P::raw_one_rotation(uint8_t slave_id, s
     list_of_commands.push_back(frame);
 #if DEBUG_SERIAL
     debug_print_frame(frame, true);
-#endif      
+#endif
     frame.clear();
     frame.push_back(slave_id);
     frame.push_back(0x06);
@@ -134,10 +134,10 @@ std::vector<std::vector<uint8_t>> LCDA630P::raw_one_rotation(uint8_t slave_id, s
     frame.push_back(0x01);
     frame.push_back(0x49);
     frame.push_back(0xB2);
-    list_of_commands.push_back(frame);   
+    list_of_commands.push_back(frame);
 #if DEBUG_SERIAL
     debug_print_frame(frame, true);
-#endif       
+#endif
     frame.clear();
     frame.push_back(slave_id);
     frame.push_back(0x06);
@@ -147,10 +147,10 @@ std::vector<std::vector<uint8_t>> LCDA630P::raw_one_rotation(uint8_t slave_id, s
     frame.push_back(0x02);
     frame.push_back(0x08);
     frame.push_back(0xC7);
-    list_of_commands.push_back(frame); 
+    list_of_commands.push_back(frame);
 #if DEBUG_SERIAL
     debug_print_frame(frame, true);
-#endif      
+#endif
     frame.clear();
     frame.push_back(slave_id);
     frame.push_back(0x06);
@@ -160,10 +160,10 @@ std::vector<std::vector<uint8_t>> LCDA630P::raw_one_rotation(uint8_t slave_id, s
     frame.push_back(0x03);
     frame.push_back(0xCC);
     frame.push_back(0xF7);
-    list_of_commands.push_back(frame);  
+    list_of_commands.push_back(frame);
 #if DEBUG_SERIAL
     debug_print_frame(frame, true);
-#endif         
+#endif
     frame.clear();
     frame.push_back(slave_id);
     frame.push_back(0x10);
@@ -178,10 +178,10 @@ std::vector<std::vector<uint8_t>> LCDA630P::raw_one_rotation(uint8_t slave_id, s
     frame.push_back(0x00);
     frame.push_back(0x38);
     frame.push_back(0xDB);
-    list_of_commands.push_back(frame); 
+    list_of_commands.push_back(frame);
 #if DEBUG_SERIAL
     debug_print_frame(frame, true);
-#endif           
+#endif
     frame.clear();
     frame.push_back(slave_id);
     frame.push_back(0x06);
@@ -191,10 +191,10 @@ std::vector<std::vector<uint8_t>> LCDA630P::raw_one_rotation(uint8_t slave_id, s
     frame.push_back(0x01);
     frame.push_back(0x46);
     frame.push_back(0xF6);
-    list_of_commands.push_back(frame);  
+    list_of_commands.push_back(frame);
 #if DEBUG_SERIAL
     debug_print_frame(frame, true);
-#endif      
+#endif
     frame.clear();
     frame.push_back(slave_id);
     frame.push_back(0x06);
@@ -204,11 +204,11 @@ std::vector<std::vector<uint8_t>> LCDA630P::raw_one_rotation(uint8_t slave_id, s
     frame.push_back(0x03);
     frame.push_back(0xC7);
     frame.push_back(0x37);
-    list_of_commands.push_back(frame);  
-    processListOfCommands(list_of_commands, sendFunction); 
+    list_of_commands.push_back(frame);
+    processListOfCommands(list_of_commands, sendFunction);
 #if DEBUG_SERIAL
     debug_print_frame(frame, true);
-#endif              
+#endif
     DEBUG_SERIAL_PRINTLN("*****************Move one rotation RAW DATA*****************");
     return list_of_commands ;
 }
@@ -222,11 +222,11 @@ std::vector<std::vector<uint8_t>> LCDA630P::moveRelative(uint8_t slave_id, int32
     list_of_commands.push_back(write_parameter_32(slave_id, (uint8_t)0x31, (uint8_t)0x11, (float)torque));//Communication given torque instruction
     list_of_commands.push_back(write_parameter(slave_id,    (uint8_t)0x31, (uint8_t)0, (uint8_t)1));//Communication given VDI virtual level 0～65535
     DEBUG_SERIAL_PRINTLN("*****************Move to pos*****************");
-    processListOfCommands(list_of_commands, sendFunction); 
+    processListOfCommands(list_of_commands, sendFunction);
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     list_of_commands.clear();
     list_of_commands.push_back(write_parameter(slave_id,    (uint8_t)0x31, (uint8_t)0, (uint8_t)3));//Communication given VDI virtual level 0～65535
-    processListOfCommands(list_of_commands, sendFunction); 
+    processListOfCommands(list_of_commands, sendFunction);
     DEBUG_SERIAL_PRINTLN("*****************Move to pos*****************");
     return list_of_commands;
 }
@@ -238,7 +238,7 @@ int64_t LCDA630P::moveAbsolute(uint8_t slave_id, int64_t position, std::function
     std::stringstream ss ;
         ss << "Absolute Position " << std::dec << ActualPulseCounterPosition << std::endl ;
         ss << "Setpoint Position " << std::dec << position << std::endl ;
-        ss << "Difference in position: " << std::dec << diffToPos << std::endl ; 
+        ss << "Difference in position: " << std::dec << diffToPos << std::endl ;
     DEBUG_SERIAL_PRINTLN(ss.str().c_str());
     moveRelative(slave_id, (int32_t)diffToPos, sendFunction, speed, torque);
     ActualPulseCounterPosition = get_actual_pulse_position(slave_id, sendFunction);
@@ -251,10 +251,10 @@ std::vector<std::vector<uint8_t>> LCDA630P::moveVelocity(uint8_t slave_id, int32
         return list_of_commands;
     list_of_commands.push_back(write_parameter(1, (uint8_t)0x2, (uint8_t)0, (uint8_t)0));//Control Mode Selectio 0: speed mod
     list_of_commands.push_back(write_parameter(1, (uint8_t)0x17, (uint8_t)0, (uint8_t)1));//VDI1 Terminal function selection
-    list_of_commands.push_back(write_parameter(1, (uint8_t)0x31, (uint8_t)0, (uint8_t)1));//Communication given VDI virtual level 0～65535 16 bit input register 
+    list_of_commands.push_back(write_parameter(1, (uint8_t)0x31, (uint8_t)0, (uint8_t)1));//Communication given VDI virtual level 0～65535 16 bit input register
     list_of_commands.push_back(write_parameter(1, (uint8_t)0x06, (uint8_t)0x03, speed));//Multi-segment location operation mode Sequential operation (P11-01 for selection of segment number)
     DEBUG_SERIAL_PRINTLN("*****************Rotate with speed*****************");
-    processListOfCommands(list_of_commands, sendFunction); 
+    processListOfCommands(list_of_commands, sendFunction);
     DEBUG_SERIAL_PRINTLN("*****************Rotate with speed*****************");
     return list_of_commands;
 }
@@ -263,7 +263,7 @@ std::vector<std::vector<uint8_t>> LCDA630P::set_torque(uint8_t slave_id, float t
     // Convert torque percentage to int16_t with bounds checking
     float scaled_torque = torque * 10.0f;
     int16_t value;
-    
+
     if (scaled_torque > 32767.0f) {
         value = 32767;  // Max value for int16_t
     } else if (scaled_torque < -32768.0f) {
@@ -277,7 +277,7 @@ std::vector<std::vector<uint8_t>> LCDA630P::set_torque(uint8_t slave_id, float t
     list_of_commands.push_back(write_parameter(1, (uint8_t)0x07, (uint8_t)11, value ));
     list_of_commands.push_back(write_parameter(1, (uint8_t)0x07, (uint8_t)12, value ));
     DEBUG_SERIAL_PRINTLN("*****************Set Torque*****************");
-    processListOfCommands(list_of_commands, sendFunction); 
+    processListOfCommands(list_of_commands, sendFunction);
     DEBUG_SERIAL_PRINTLN("*****************Set Torque*****************");
     return list_of_commands;
 }
@@ -292,9 +292,9 @@ std::vector<std::vector<uint8_t>> LCDA630P::config_for_modbus_control_position(u
     list_of_commands.push_back(write_parameter(1,0x5,0,2));//Control Mode Selectio 1: position mod
     list_of_commands.push_back(write_parameter(1,0x5,2,10000));//Number of position instructions per rotation of motor
     list_of_commands.push_back(write_parameter(1, (uint8_t)0x11, (uint8_t)0, (uint8_t)2));//Multi-segment location operation mode Sequential operation (P11-01 for selection of segment number)
-    eControlMode = Position ; 
+    eControlMode = Position ;
     DEBUG_SERIAL_PRINTLN("*****************Config for modbus control*****************");
-    processListOfCommands(list_of_commands, sendFunction); 
+    processListOfCommands(list_of_commands, sendFunction);
     DEBUG_SERIAL_PRINTLN("*****************Config for modbus control*****************");
     return list_of_commands;
 }
@@ -311,9 +311,9 @@ std::vector<std::vector<uint8_t>> LCDA630P::config_for_modbus_control_speed(uint
     list_of_commands.push_back(write_parameter(1, (uint8_t)0x6, (uint8_t)1, (uint8_t)5));//Location instruction source multi-segment position instruction give
     list_of_commands.push_back(write_parameter(1, (uint8_t)0x6, (uint8_t)2, (uint8_t)0));//Location instruction source multi-segment position instruction give
     list_of_commands.push_back(write_parameter(1, (uint8_t)0x11, (uint8_t)0, (uint8_t)3));//Multi-segment location operation mode Sequential operation (P11-01 for selection of segment number)
-    eControlMode = Speed ; 
+    eControlMode = Speed ;
     DEBUG_SERIAL_PRINTLN("*****************Config for modbus control*****************");
-    processListOfCommands(list_of_commands, sendFunction); 
+    processListOfCommands(list_of_commands, sendFunction);
     DEBUG_SERIAL_PRINTLN("*****************Config for modbus control*****************");
     return list_of_commands;
 }
