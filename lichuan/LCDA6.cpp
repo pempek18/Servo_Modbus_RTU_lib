@@ -2,7 +2,8 @@
 
 LCDA6::LCDA6()
 {
-    DEBUG_SERIAL_PRINTLN("Class declared");
+    DEBUG_SERIAL_PRINTLN("LCDA6 instance declared");
+    pulse_per_rotation = 10000;
 }
 LCDA6::~LCDA6()
 {
@@ -196,8 +197,9 @@ bool LCDA6::disable(uint8_t slave_id, std::function<std::vector<uint8_t>(const s
 int64_t LCDA6::get_actual_mechanical_position(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction)
 {
     std::vector<std::vector<uint8_t>> list_of_commands;
-    list_of_commands.push_back(read_parameter(slave_id, 0x1BC));
-    list_of_commands.push_back(read_parameter(slave_id, 0x1BD));
+    list_of_commands.push_back(read_parameter(slave_id, 0x1BC, (uint16_t)4)); // Force to use address (2 bytes) and get 2 registers (4 bytes)
+    // list_of_commands.push_back(read_parameter(slave_id, 0x1BC));
+    // list_of_commands.push_back(read_parameter(slave_id, 0x1BD));
     std::vector<int32_t> values ;
     DEBUG_SERIAL_PRINTLN("*****************Read Absolute Position*****************");
     values = processListOfCommands(list_of_commands, sendFunction);
@@ -210,25 +212,48 @@ int64_t LCDA6::get_actual_mechanical_position(uint8_t slave_id, std::function<st
 }
 int64_t LCDA6::get_actual_pulse_position(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction)
 {
+    //TODO
     return 0;
+    std::vector<std::vector<uint8_t>> list_of_commands;
+
+    std::vector<int32_t> values ;
+    DEBUG_SERIAL_PRINTLN("*****************Read Pulse Position*****************");
+    values = processListOfCommands(list_of_commands, sendFunction);
+    DEBUG_SERIAL_PRINTLN("*****************Read Pulse Position*****************");
 }
 std::vector<std::vector<uint8_t>> LCDA6::moveRelative(uint8_t slave_id, int32_t position, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction, int32_t speed, float torque)
 {
-    return std::vector<std::vector<uint8_t>>();
+    std::vector<std::vector<uint8_t>> list_of_commands ;
+    if (!controlOverModbus)
+        return list_of_commands;
+
+    list_of_commands.push_back(write_parameter(slave_id, 0x94 , 0x01));         // Move relative
+    list_of_commands.push_back(write_parameter_32(slave_id, 0x168, position));  // Internal Position Command 0
+
+    DEBUG_SERIAL_PRINTLN("*****************Write Relative Position*****************");
+    processListOfCommands(list_of_commands, sendFunction);
+    DEBUG_SERIAL_PRINTLN("*****************Write Relative Position*****************");
+    return list_of_commands;
 }
 int64_t LCDA6::moveAbsolute(uint8_t slave_id, int64_t position, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction, int32_t speed, float torque)
 {
-    return 0;
+    std::vector<std::vector<uint8_t>> list_of_commands ;
+    if (!controlOverModbus)
+        return 0;
+
+    //TODO
+    list_of_commands.push_back(write_parameter(slave_id, 0x94 , 0x00));         // Move absolute
+    list_of_commands.push_back(write_parameter_32(slave_id, 0x168, position));  // Internal Position Command 0
+
+    DEBUG_SERIAL_PRINTLN("*****************Write Absolute Position*****************");
+    processListOfCommands(list_of_commands, sendFunction);
+    DEBUG_SERIAL_PRINTLN("*****************Write Absolute Position*****************");
 }
 
 // Speed
 int16_t LCDA6::get_speed(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction)
 {
-    //FIXME - Leave both for now, due to errors from past
-    // If DI is set as INTSPD                                               //TODO - leave for now
-    std::vector<uint8_t> command = read_parameter(slave_id, 0x53);          // Get Speed value (RPM) from INTSPD0
-    // if not used DI as INTSPD
-    // std::vector<uint8_t> command = read_parameter(slave_id, 0x140);      //FIXME // Get Commanded speed to Internal Speed Command 0
+    std::vector<uint8_t> command = read_parameter(slave_id, 0x1C1);             // Get Feedback speed
     std::vector<uint8_t> response = sendFunction(command);
 
     DEBUG_SERIAL_PRINTLN("*****************Read Current Speed*****************")
@@ -242,21 +267,24 @@ std::vector<std::vector<uint8_t>> LCDA6::moveVelocity(uint8_t slave_id, int32_t 
     if (!controlOverModbus)
         return list_of_commands;
 
-    //FIXME - Leave both for now, due to errors from past
-    // If DI is set as INTSPD
-    list_of_commands.push_back(write_parameter(slave_id, 0x53, speed));     // Set Speed value (RPM) into INTSPD0
-    // if not used DI as INTSPD
-    list_of_commands.push_back(write_parameter(slave_id, 0x140, speed));    // Set Commanded speed to Internal Speed Command 0
+    list_of_commands.push_back(write_parameter(slave_id, 0x53 , speed));        // 1st Internal speed
+    list_of_commands.push_back(write_parameter(slave_id, 0x140, speed));        // Internal Speed Command 0
 
-    DEBUG_SERIAL_PRINTLN("*****************Write speed*****************");
+    DEBUG_SERIAL_PRINTLN("*****************Write Speed*****************");
     processListOfCommands(list_of_commands, sendFunction);
-    DEBUG_SERIAL_PRINTLN("*****************Write speed*****************");
+    DEBUG_SERIAL_PRINTLN("*****************Write Speed*****************");
     return list_of_commands;
 }
 
 // Torque
 int16_t LCDA6::get_torque(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction){
-    return 0;
+    std::vector<uint8_t> command = read_parameter(slave_id, 0x1C4);             // Get Feedback torque
+    std::vector<uint8_t> response = sendFunction(command);
+
+    DEBUG_SERIAL_PRINTLN("*****************Read Current Torque*****************")
+    int32_t value = parseModbusResponse(response);
+    DEBUG_SERIAL_PRINTLN("*****************Read Current Torque*****************")
+    return value;
 }
 std::vector<std::vector<uint8_t>> LCDA6::set_torque(uint8_t slave_id, float torque, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction)
 {
@@ -266,22 +294,23 @@ std::vector<std::vector<uint8_t>> LCDA6::set_torque(uint8_t slave_id, float torq
 
     if (torque > 100)
         torque = 100;
-    if (torque < 0)
+    else if (torque < 0)
         torque = 0;
 
-    list_of_commands.push_back(write_parameter(slave_id, 0x5E, torque * 25));     // 1st torque limit
-    list_of_commands.push_back(write_parameter(slave_id, 0x12C, torque * 25));    // Internal torque command 0
+    list_of_commands.push_back(write_parameter(slave_id, 0x5E , torque * 25));  // 1st torque limit
+    list_of_commands.push_back(write_parameter(slave_id, 0x12C, torque * 25));  // Internal torque command 0
 
 
-    DEBUG_SERIAL_PRINTLN("*****************Write torque*****************");
+    DEBUG_SERIAL_PRINTLN("*****************Write Torque*****************");
     processListOfCommands(list_of_commands, sendFunction);
-    DEBUG_SERIAL_PRINTLN("*****************Write torque*****************");
+    DEBUG_SERIAL_PRINTLN("*****************Write Torque*****************");
     return list_of_commands;
 }
 
 // Raw
 std::vector<std::vector<uint8_t>> LCDA6::raw_one_rotation(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction)
 {
+    //TODO
     return std::vector<std::vector<uint8_t>>();
 }
 

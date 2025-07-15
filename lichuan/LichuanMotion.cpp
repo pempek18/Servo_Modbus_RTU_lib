@@ -2,7 +2,7 @@
 
 LichuanMotion::LichuanMotion()
 {
-    DEBUG_SERIAL_PRINTLN("Class declared");
+    DEBUG_SERIAL_PRINTLN("LichuanMotion instance declared");
 }
 
 void LichuanMotion::debug_print_frame(std::vector<uint8_t> frame, bool print)
