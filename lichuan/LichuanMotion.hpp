@@ -92,14 +92,14 @@ class LichuanMotion
         /// @param sendFunction provide function for sending RS-485
         /// @param size size of frame, at least 8 byte
         /// @return a vector of bytes that make up one frame
-        std::vector<uint8_t> read_parameter(uint8_t slave_id, uint8_t group_number, uint8_t parameter_offset, uint8_t size=2, std::optional<std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)>> sendFunction = std::nullopt);
+        std::vector<uint8_t> read_parameter(uint8_t slave_id, uint8_t group_number, uint8_t parameter_offset, uint8_t size=1, std::optional<std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)>> sendFunction = std::nullopt);
         /// @brief Read specific parameter form servo with given send function
         /// @param slave_id Servo addres
         /// @param address address of parameter
         /// @param size size of frame, at least 8 byte
         /// @param sendFunction provide function for sending RS-485
         /// @return a vector of bytes that make up one frame
-        std::vector<uint8_t> read_parameter(uint8_t slave_id, uint16_t address, uint16_t size=2, std::optional<std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)>> sendFunction = std::nullopt);
+        std::vector<uint8_t> read_parameter(uint8_t slave_id, uint16_t address, uint16_t size=1, std::optional<std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)>> sendFunction = std::nullopt);
         /// @brief Write specific parameter to servo with given send function
         /// @param slave_id Servo addres
         /// @param group_number PXX-YY - XX - group number
@@ -205,7 +205,7 @@ class LichuanMotion
         /// @brief parse response and print as readable on command line, return response value
         /// @param frame given in response of send function
         /// @return
-        int32_t parseModbusResponse(const std::vector<uint8_t>& response) ;
+        virtual int32_t parseModbusResponse(const std::vector<uint8_t>& response) ;
         /// @brief Calculatr crc for send request
         /// @param data frame without data
         /// @param length size of data

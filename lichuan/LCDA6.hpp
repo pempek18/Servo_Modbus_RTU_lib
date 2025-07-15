@@ -31,6 +31,8 @@ class LCDA6 : public LichuanMotion
         std::vector<std::vector<uint8_t>>  set_torque(uint8_t slave_id, float torque, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
 
         std::vector<std::vector<uint8_t>>  raw_one_rotation(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
+
+        int32_t parseModbusResponse(const std::vector<uint8_t>& response) override;
 };
 
 #endif // LCDA6_HPP

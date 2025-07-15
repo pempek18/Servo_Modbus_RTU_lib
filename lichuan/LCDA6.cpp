@@ -3,7 +3,6 @@
 LCDA6::LCDA6()
 {
     DEBUG_SERIAL_PRINTLN("LCDA6 instance declared");
-    pulse_per_rotation = 10000;
 }
 LCDA6::~LCDA6()
 {
@@ -21,12 +20,13 @@ std::vector<std::vector<uint8_t>> LCDA6::read_servo_brief(uint8_t slave_id, std:
     // Read parameters - Verify the config
     list_of_commands.push_back(read_parameter(slave_id, 0x00));         // Slave ID     - Default 0x01
     list_of_commands.push_back(read_parameter(slave_id, 0x0D));         // Baud Rate    - 57600 - 0x05
-
+    list_of_commands.push_back(read_parameter(slave_id, 0x4A));         // Pulses per revolution
     std::vector<int32_t> values;
     DEBUG_SERIAL_PRINTLN("*****************Read Brief*****************")
     values = processListOfCommands(list_of_commands, sendFunction);
     DEBUG_SERIAL_PRINTLN("*****************Read Brief*****************")
 
+    pulse_per_rotation = values[3]; // parameter 0x4A
     return list_of_commands;
 }
 // Mode Configuration
@@ -237,6 +237,8 @@ std::vector<std::vector<uint8_t>> LCDA6::moveRelative(uint8_t slave_id, int32_t 
 }
 int64_t LCDA6::moveAbsolute(uint8_t slave_id, int64_t position, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction, int32_t speed, float torque)
 {
+    return 0; //DEBUG
+
     std::vector<std::vector<uint8_t>> list_of_commands ;
     if (!controlOverModbus)
         return 0;
@@ -333,4 +335,69 @@ int8_t LCDA6::ModeToInt(servomode mode){
         default:
             return 1; // Default to speed
     }
+}
+
+int32_t LCDA6::parseModbusResponse(const std::vector<uint8_t>& response){
+    int32_t val = 0;
+    #define LOWER_16_FIRST
+
+    #ifdef LOWER_16_FIRST
+        #define LSB 8
+        #define MSB 0
+    #else
+        #define LSB 0
+        #define MSB 8
+    #endif
+
+    if (response.size() < 7) {
+        return 0x00;
+    }
+    int16_t ID = static_cast<int>(response[0]);
+    int16_t FN = static_cast<int>(response[1]);
+
+    std::stringstream ss;
+    ss << std::hex << std::setfill('0') << std::setw(2)
+       << "ID: "   << ID
+       << "\tFN :" << FN;
+
+    switch (FN) {
+        case 0x03:{
+            int16_t len = static_cast<int16_t>(response[2]);
+            ss << "\tbytes: " << std::dec << len;
+
+            for(int i = 0; i < len; i+=2){
+                val = (static_cast<int16_t>(response[3+2*i]) << LSB)  | (static_cast<int16_t>(response[4+2*i]) << MSB);
+                ss << "\tvalue: " << val
+                   << "\thex: "   << std::hex << "0x" << std::setfill('0') << std::setw(2) << static_cast<int>(val);
+            }
+            ss << std::endl;
+            break;
+        }
+        case 0x06:{ // Write single register
+            int16_t addr = (static_cast<int16_t>(response[2]) << LSB)  | (static_cast<int16_t>(response[3]) << MSB);
+            ss << "\taddr: "<< std::hex << "0x" << std::setfill('0') << std::setw(2) << static_cast<int>(addr);
+
+            val =  (static_cast<int16_t>(response[4]) << LSB)  | (static_cast<int16_t>(response[5]) << MSB);
+            ss << "\tvalue: " << std::dec << val
+               << "\thex: "   << std::hex << "0x" << std::setfill('0') << std::setw(2) << static_cast<int>(val)
+               << std::endl;
+            break;
+        }
+        case 0x10:{ // Write 32-bit register
+            int16_t addr = (static_cast<int16_t>(response[2]) << LSB)  | (static_cast<int16_t>(response[3]) << MSB);
+            ss << "\taddr: "<< std::hex << "0x" << std::setfill('0') << std::setw(2) << static_cast<int>(addr);
+            val =  (static_cast<int16_t>(response[4]) << LSB)  | (static_cast<int16_t>(response[5]) << MSB);
+
+            ss << "\tregs: "<< std::dec << val
+               << "\t\thex: "  << std::hex << "0x" << std::setfill('0') << std::setw(2) << static_cast<int>(val)
+               << std::endl;
+            break;
+        }
+        default:
+            return 0x00;
+            break;
+    }
+
+    DEBUG_SERIAL_PRINT(ss.str().c_str());
+    return val;
 }

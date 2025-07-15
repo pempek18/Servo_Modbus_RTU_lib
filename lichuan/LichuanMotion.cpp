@@ -98,9 +98,10 @@ std::vector<uint8_t> LichuanMotion::write_parameter_32(uint8_t slave_id, uint8_t
     frame.push_back(0x10);     // Write Holding Register
     frame.push_back(group_number);
     frame.push_back(parameter_offset);
-    frame.push_back(0x00); //The high 8 bits of the function code are M(H), and the length of a 32-bit function code is 2.
-    frame.push_back(0x02); //Function code number lower 8 digits M(L)
-    frame.push_back(0x04); //The number of function codes corresponds ti the number of bytes M*2. For examole, if P05-07 is written alone, DATA[4] is P04
+    frame.push_back(0x00); // Number of registers to write HIGH 8 bits
+    frame.push_back(0x02); // Number of registers to write LOW 8 bits
+    frame.push_back(0x04); // Number of bytes to write
+
     if (lower16_bit_first)
     {
         frame.push_back((value >> 8) & 0xFF); //Write the high 8 bits of the start function code, hex
