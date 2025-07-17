@@ -21,12 +21,15 @@ std::vector<std::vector<uint8_t>> LCDA6::read_servo_brief(uint8_t slave_id, std:
     list_of_commands.push_back(read_parameter(slave_id, 0x00));         // Slave ID     - Default 0x01
     list_of_commands.push_back(read_parameter(slave_id, 0x0D));         // Baud Rate    - 57600 - 0x05
     list_of_commands.push_back(read_parameter(slave_id, 0x4A));         // Pulses per revolution
+    // list_of_commands.push_back(read_parameter(slave_id, 0x45));         // Feedback pulse division factor (not working)
     std::vector<int32_t> values;
     DEBUG_SERIAL_PRINTLN("*****************Read Brief*****************")
     values = processListOfCommands(list_of_commands, sendFunction);
     DEBUG_SERIAL_PRINTLN("*****************Read Brief*****************")
 
     pulse_per_rotation = values[3]; // parameter 0x4A
+    // encoder_resolution = float(pulse_per_rotation / 4) * values[4]; // parameter 0x45 (not working)
+    encoder_resolution = 0x1FFFF; // 17 bits - driver version Cxy
     return list_of_commands;
 }
 // Mode Configuration
@@ -45,8 +48,6 @@ std::vector<std::vector<uint8_t>> LCDA6::config_for_modbus_control_position(uint
     int16_t DI_cfg = (1 << 0) | (1 << 1);                                   // DI Config     - (BIT_0) servo enable, (BIT_1) alarm release
     list_of_commands.push_back(write_parameter(slave_id, 0x1A0, DI_cfg));   // Set DI source - (0) wiring   / (1) communication
     // list_of_commands.push_back(write_parameter(slave_id, 0x1A5, 0x00));  // Set DI mask   - (0) Input ON / (1) Input OFF
-
-    //TODO - Add position mode parameters if needed
 
     // DI configuration POSITION MODE
     list_of_commands.push_back(write_parameter(slave_id, 0x80, 0));         // DI: SERVO ENABLE
@@ -140,8 +141,6 @@ std::vector<std::vector<uint8_t>> LCDA6::config_for_modbus_control_torque(uint8_
     list_of_commands.push_back(write_parameter(slave_id, 0x1A0, DI_cfg));   // Set DI source - (0) wiring   / (1) communication
     // list_of_commands.push_back(write_parameter(slave_id, 0x1A5, 0x00));  // Set DI mask   - (0) Input ON / (1) Input OFF
 
-    //TODO - Add torque mode parameters if needed
-
     // DI configuration TORQUE MODE
     list_of_commands.push_back(write_parameter(slave_id, 0x80, 0));         // DI: SERVO ENABLE
     list_of_commands.push_back(write_parameter(slave_id, 0x81, 1));         // DI: ALARM RELEASE
@@ -197,9 +196,8 @@ bool LCDA6::disable(uint8_t slave_id, std::function<std::vector<uint8_t>(const s
 int64_t LCDA6::get_actual_mechanical_position(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction)
 {
     std::vector<std::vector<uint8_t>> list_of_commands;
-    list_of_commands.push_back(read_parameter(slave_id, 0x1BC, (uint16_t)4)); // Force to use address (2 bytes) and get 2 registers (4 bytes)
-    // list_of_commands.push_back(read_parameter(slave_id, 0x1BC));
-    // list_of_commands.push_back(read_parameter(slave_id, 0x1BD));
+    list_of_commands.push_back(read_parameter(slave_id, 0x1BC));
+    list_of_commands.push_back(read_parameter(slave_id, 0x1BD));
     std::vector<int32_t> values ;
     DEBUG_SERIAL_PRINTLN("*****************Read Absolute Position*****************");
     values = processListOfCommands(list_of_commands, sendFunction);
@@ -212,14 +210,10 @@ int64_t LCDA6::get_actual_mechanical_position(uint8_t slave_id, std::function<st
 }
 int64_t LCDA6::get_actual_pulse_position(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction)
 {
-    //TODO
-    return 0;
-    std::vector<std::vector<uint8_t>> list_of_commands;
-
-    std::vector<int32_t> values ;
-    DEBUG_SERIAL_PRINTLN("*****************Read Pulse Position*****************");
-    values = processListOfCommands(list_of_commands, sendFunction);
-    DEBUG_SERIAL_PRINTLN("*****************Read Pulse Position*****************");
+    ActualAbsolutePosition = get_actual_mechanical_position(slave_id, sendFunction);
+    float position =  (float)ActualAbsolutePosition / (float)encoder_resolution  * (float)pulse_per_rotation;
+    ActualPulseCounterPosition = (int64_t)position;
+    return ActualPulseCounterPosition;
 }
 std::vector<std::vector<uint8_t>> LCDA6::moveRelative(uint8_t slave_id, int32_t position, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction, int32_t speed, float torque)
 {
@@ -237,19 +231,9 @@ std::vector<std::vector<uint8_t>> LCDA6::moveRelative(uint8_t slave_id, int32_t 
 }
 int64_t LCDA6::moveAbsolute(uint8_t slave_id, int64_t position, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction, int32_t speed, float torque)
 {
-    return 0; //DEBUG
-
-    std::vector<std::vector<uint8_t>> list_of_commands ;
-    if (!controlOverModbus)
-        return 0;
-
-    //TODO
-    list_of_commands.push_back(write_parameter(slave_id, 0x94 , 0x00));         // Move absolute
-    list_of_commands.push_back(write_parameter_32(slave_id, 0x168, position));  // Internal Position Command 0
-
-    DEBUG_SERIAL_PRINTLN("*****************Write Absolute Position*****************");
-    processListOfCommands(list_of_commands, sendFunction);
-    DEBUG_SERIAL_PRINTLN("*****************Write Absolute Position*****************");
+    int64_t position_delta = position - ActualPulseCounterPosition;
+    moveRelative(slave_id, position_delta, sendFunction, speed, torque);
+    return position; // Return the target position
 }
 
 // Speed

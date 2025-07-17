@@ -56,7 +56,11 @@ class LichuanMotion
         Converter64 converter;
     public :
         LichuanMotion();
-      //inital parameters
+        uint16_t controlOverModbus; // should be bool
+        bool lower16_bit_first = true ;
+        servomode eControlMode ;
+
+        // Initial parameters
         uint16_t MotorNumber ;
         uint16_t RatedVoltage ;
         uint16_t RatedPower ;
@@ -66,15 +70,14 @@ class LichuanMotion
         uint16_t RatedSpeed ;
         uint16_t MaxSpeed ;
         uint32_t PositionOffsetOfAbsolutEncoder ;
-        uint16_t controlOverModbus;
         int64_t encoder_resolution = 8388608 ;
         int64_t pulse_per_rotation = 10000 ;
-        bool lower16_bit_first = true ;
-        //Absolute position stored in instance
+
+        // Feedback
         int64_t ActualAbsolutePosition;
-        int64_t ActualPulseCounterPosition ;
-        int16_t ActualSpeedRpm ;
-        servomode eControlMode ;
+        int64_t ActualPulseCounterPosition;
+        int16_t ActualSpeedRpm;
+
         void scan_devices();
         /// @brief Debug function to show the frame
         /// @param frame frame itself
