@@ -1,7 +1,9 @@
 #ifndef LICHUAN_MOTION
 #define LICHUAN_MOTION
 
-#define DEBUG_SERIAL true
+#ifndef DEBUG_SERIAL
+    #define DEBUG_SERIAL true
+#endif
 #if (DEBUG_SERIAL == true)
     #include <iostream>
     #define DEBUG_SERIAL_PRINTLN(x) std::cout << x << std::endl;
@@ -58,7 +60,7 @@ class LichuanMotion
         LichuanMotion();
         uint16_t controlOverModbus; // should be bool
         bool lower16_bit_first = true ;
-        servomode eControlMode ;
+        servomode eControlMode = undefined;
 
         // Initial parameters
         uint16_t MotorNumber ;
