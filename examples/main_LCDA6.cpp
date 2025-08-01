@@ -29,7 +29,7 @@ int main()
     std::string s ; 
     while (true)
     {
-        std::cout << "choose what what to do: i[config], r[read], w[write], e[raw one rotation], p[acutal position], c[acutal pulse position], t[torque], m[move], a[absolute], s[speed], d[disable], q[quit]" << std::endl ; 
+        std::cout << "choose what what to do: i[config], r[read], w[write], e[raw one rotation], p[acutal position], c[acutal pulse position], t[torque], l[loop], m[move], a[absolute], s[speed], d[disable], q[quit]" << std::endl ; 
         std::cin >> mode ; 
         switch (mode)
         {
@@ -82,7 +82,7 @@ int main()
         }    
         case 'e' :
         {
-            servo.raw_one_rotation(1, send_wrapper);
+            servo.enable(1, send_wrapper);
             break;
         }
         case 'p' :
@@ -158,11 +158,136 @@ int main()
             }
             break;
         } 
+        case 'l' :
+        {
+            std::cout << "Endless loop, press any key to stop" << std::endl ;
+            std::cout << "Type speed value or q to quit" << std::endl ;
+            std::cin >> s ;      
+            int32_t speed = 50;
+            int32_t add_pos = 125;
+            std::vector<std::string> params = splitString(s, ',');
+            if (params.size() == 1)
+            {
+                speed = std::stoi(params[0]);
+            }
+            else if (params.size() == 2)
+            {
+                speed = std::stoi(params[0]);
+                add_pos = std::stoi(params[1]);
+            }
+            int64_t pos = servo.get_actual_pulse_position(1, send_wrapper);
+            std::cout << "Actual Pulse position is : " << std::dec << pos << " hex : 0x" << std::hex << pos << std::flush;
+            std::vector<std::vector<uint8_t>> config = servo.config_for_modbus_control_speed(1, send_wrapper);
+            servo.moveVelocity(1, -speed, send_wrapper);
+            servo.enable(1, send_wrapper);
+            uint64_t i=1;
+            int64_t pos_to_toggle = pos - add_pos;
+            while (true) {
+                system("clear");
+                if (i%2 == 0)
+                    pos_to_toggle = pos + i * add_pos + add_pos;
+                else
+                    pos_to_toggle = pos + i * add_pos - add_pos * 2 ;
+                std::cout << "\rActual Pulse position is : " << std::dec << pos << " i: " << std::dec << i << " pos_to_toggle: " << std::dec << pos_to_toggle << std::flush;
+                servo.get_actual_pulse_position(1, send_wrapper);
+                if (i%2 == 0 && servo.ActualPulseCounterPosition > pos_to_toggle)
+                {
+                    servo.moveVelocity(1, speed, send_wrapper);
+                    i++;
+                }
+                else if (i%2 == 1 && servo.ActualPulseCounterPosition < pos_to_toggle)
+                {
+                    servo.moveVelocity(1, -speed, send_wrapper);
+                    i++;
+                } 
+                
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                if (std::cin.rdbuf()->in_avail()) {
+                    std::cin.get(); // Clear the input buffer
+                    break;
+                }
+            }
+        }
+        case 'j' :
+        {
+        // INSERT_YOUR_CODE
+            std::cout << "Endless loop (time-based toggle), press any key to stop" << std::endl;
+            std::cout << "Type speed value, toggle interval in ms, and add_pos (comma separated, e.g. 50,1000,125), or q to quit" << std::endl;
+            std::cin >> s;
+            int32_t speed = 50;
+            int32_t add_pos = 125;
+            int interval_ms = 1000;
+            {
+                std::vector<std::string> params = splitString(s, ',');
+                if (params.size() == 1) {
+                    speed = std::stoi(params[0]);
+                } else if (params.size() == 2) {
+                    speed = std::stoi(params[0]);
+                    interval_ms = std::stoi(params[1]);
+                } else if (params.size() >= 3) {
+                    speed = std::stoi(params[0]);
+                    interval_ms = std::stoi(params[1]);
+                    add_pos = std::stoi(params[2]);
+                }
+            }
+            int64_t pos = servo.get_actual_pulse_position(1, send_wrapper);
+            std::cout << "Actual Pulse position is : " << std::dec << pos << " hex : 0x" << std::hex << pos << std::flush;
+            std::vector<std::vector<uint8_t>> config = servo.config_for_modbus_control_speed(1, send_wrapper);
+            servo.moveVelocity(1, -speed, send_wrapper);
+            servo.enable(1, send_wrapper);
+            int64_t pos_to_toggle = pos - add_pos;
+            bool direction = false;
+            auto last_toggle = std::chrono::steady_clock::now();
+            while (true) {
+                system("clear");
+                int64_t current_pos = servo.get_actual_pulse_position(1, send_wrapper);
+                std::cout << "\rActual Pulse position is : " << std::dec << current_pos
+                          << " pos_to_toggle: " << std::dec << pos_to_toggle
+                          << " speed: " << speed
+                          << " interval_ms: " << interval_ms
+                          << std::flush;
+                auto now = std::chrono::steady_clock::now();
+                static bool waiting_extra = false;
+                static auto extra_wait_start = std::chrono::steady_clock::now();
+
+                if (!direction && waiting_extra) {
+                    // Currently in -speed direction and waiting extra time
+                    if (std::chrono::duration_cast<std::chrono::milliseconds>(now - extra_wait_start).count() >= interval_ms) {
+                        waiting_extra = false;
+                        last_toggle = now;
+                        direction = !direction;
+                        pos_to_toggle = pos + add_pos;
+                        servo.moveVelocity(1, speed, send_wrapper);
+                    }
+                } else if (std::chrono::duration_cast<std::chrono::milliseconds>(now - last_toggle).count() >= interval_ms) {
+                    direction = !direction;
+                    if (direction) {
+                        pos_to_toggle = pos + add_pos;
+                        servo.moveVelocity(1, speed, send_wrapper);
+                    } else {
+                        pos_to_toggle = pos - add_pos;
+                        servo.moveVelocity(1, -speed, send_wrapper);
+                        // Start extra wait for -speed direction
+                        waiting_extra = true;
+                        extra_wait_start = std::chrono::steady_clock::now();
+                    }
+                    if (!waiting_extra) {
+                        last_toggle = now;
+                    }
+                }
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                if (std::cin.rdbuf()->in_avail()) {
+                    std::cin.get(); // Clear the input buffer
+                    break;
+                }
+            }
+        }
         case 'a' :
         {
             std::cout << "Type position to move absolute or q to quit" << std::endl ;
             std::cin >> s ;      
             int64_t position = std::stoi(s);  
+            servo.config_for_modbus_control_position(1, send_wrapper);
             servo.moveAbsolute(1, position, send_wrapper);
             break;
         }                                  

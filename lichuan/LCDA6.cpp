@@ -291,7 +291,7 @@ std::vector<std::vector<uint8_t>> LCDA6::moveRelative(uint8_t slave_id, int32_t 
     std::vector<std::vector<uint8_t>> list_of_commands ;
     if (!controlOverModbus)
         return list_of_commands;
-
+    get_actual_pulse_position(slave_id, sendFunction);
     int64_t position_delta = ActualPulseCounterPosition + position;
     moveAbsolute(slave_id, position_delta, sendFunction, speed, torque);
 
