@@ -3,9 +3,21 @@
 
 #include "LichuanMotion.hpp"
 
+enum class servomode : uint8_t
+{
+    Position = 0,
+    Speed = 1,
+    Torque = 2,
+    PositionSpeed = 3,
+    PositionTorque = 4,
+    SpeedTorque = 5,
+    CanOpen = 10
+};
+
 class LCDA6 : public LichuanMotion
 {
     private:
+        servomode eControlMode = servomode::PositionSpeed;
         int8_t ModeToInt(servomode mode);
     public :
         LCDA6();

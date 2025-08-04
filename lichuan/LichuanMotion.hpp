@@ -32,18 +32,6 @@ union Converter64 {
     uint8_t as_uint8[8];
 };
 
-enum servomode
-{
-    undefined,
-    Speed,
-    Position,
-    Torque,
-    TorqueSpeed,
-    SpeedPosition,
-    TorquePosition,
-    Hybrid
-};
-
 class LichuanMotion
 {
     public:
@@ -60,7 +48,6 @@ class LichuanMotion
         LichuanMotion();
         uint16_t controlOverModbus; // should be bool
         bool lower16_bit_first = true ;
-        servomode eControlMode = undefined;
 
         // Initial parameters
         uint16_t MotorNumber ;

@@ -39,12 +39,12 @@ std::vector<std::vector<uint8_t>> LCDA6::config_for_modbus_control_position(uint
 {
     std::vector<std::vector<uint8_t>> list_of_commands ;
     // If already in position mode, do nothing
-    if (controlOverModbus && eControlMode == Position)
+    if (controlOverModbus && eControlMode == servomode::Position)
         return list_of_commands ;
-    eControlMode = Position ;
+    eControlMode = servomode::Position ;
 
     // Set position mode
-    list_of_commands.push_back(write_parameter(slave_id, 0x02, ModeToInt(Position)));
+    list_of_commands.push_back(write_parameter(slave_id, 0x02, ModeToInt(servomode::Position)));
 
     // Set DI source - wiring / communication
     int16_t DI_cfg = (1 << 0) | // DI Config - (BIT_0) servo enable
@@ -83,12 +83,12 @@ std::vector<std::vector<uint8_t>> LCDA6::config_for_modbus_control_speed(uint8_t
 {
     std::vector<std::vector<uint8_t>> list_of_commands ;
     // If already in speed mode, do nothing
-    if (controlOverModbus && eControlMode == Speed)
+    if (controlOverModbus && eControlMode == servomode::Speed)
         return list_of_commands ;
-    eControlMode = Speed ;
+    eControlMode = servomode::Speed ;
 
     // Set speed mode
-    list_of_commands.push_back(write_parameter(slave_id, 0x02, ModeToInt(Speed)));
+    list_of_commands.push_back(write_parameter(slave_id, 0x02, ModeToInt(servomode::Speed)));
     // Set speed source
     list_of_commands.push_back(write_parameter(slave_id, 0x05, 3));         // (0) Analog / (1-3) Internal speed selector
     list_of_commands.push_back(write_parameter(slave_id, 0x92, 0));         // Set Commanded speed to Internal Speed Command 0
@@ -134,12 +134,12 @@ std::vector<std::vector<uint8_t>> LCDA6::config_for_modbus_control_torque(uint8_
 {
     std::vector<std::vector<uint8_t>> list_of_commands ;
     // If already in torque mode, do nothing
-    if (controlOverModbus && eControlMode == Torque)
+    if (controlOverModbus && eControlMode == servomode::Torque)
         return list_of_commands ;
-    eControlMode = Torque ;
+    eControlMode = servomode::Torque;
 
     // Set torque mode
-    list_of_commands.push_back(write_parameter(slave_id, 0x02, ModeToInt(Torque)));
+    list_of_commands.push_back(write_parameter(slave_id, 0x02, ModeToInt(servomode::Torque)));
 
     // Set DI source - wiring / communication
     int16_t DI_cfg = (1 << 0) | // DI Config - (BIT_0) servo enable
@@ -177,12 +177,12 @@ std::vector<std::vector<uint8_t>> LCDA6::config_for_modbus_control_position_spee
 {
     std::vector<std::vector<uint8_t>> list_of_commands ;
     // If already in speed mode, do nothing
-    if (controlOverModbus && eControlMode == SpeedPosition)
+    if (controlOverModbus && eControlMode == servomode::PositionSpeed)
         return list_of_commands;
-    eControlMode = SpeedPosition;
+    eControlMode = servomode::PositionSpeed;
 
     // Set speed mode
-    list_of_commands.push_back(write_parameter(slave_id, 0x02, ModeToInt(SpeedPosition)));
+    list_of_commands.push_back(write_parameter(slave_id, 0x02, ModeToInt(servomode::PositionSpeed)));
     // Set speed & position source
     list_of_commands.push_back(write_parameter(slave_id, 0x05, 3));         // (0) Analog / (1-3) Internal speed selector
     list_of_commands.push_back(write_parameter(slave_id, 0x92, 0));         // Set Commanded speed to Internal Speed Command 0
@@ -191,6 +191,7 @@ std::vector<std::vector<uint8_t>> LCDA6::config_for_modbus_control_position_spee
     // Set DI source - wiring / communication
     int16_t DI_cfg = (1 << 0) | // DI Config - (BIT_0) servo enable
                      (1 << 1) | //           - (BIT_1) alarm release
+                     (1 << 4) | //           - (BIT_4) C_MODE change
                      (1 << 5);  //           - (BIT_5) position loading
 
     list_of_commands.push_back(write_parameter(slave_id, 0x1A0, DI_cfg));   // Set DI source - (0) wiring   / (1) communication
@@ -207,7 +208,7 @@ std::vector<std::vector<uint8_t>> LCDA6::config_for_modbus_control_position_spee
     list_of_commands.push_back(write_parameter(slave_id, 0x81, 1));         // DI: ALARM RELEASE
     list_of_commands.push_back(write_parameter(slave_id, 0x82, 2));         // DI: CLOCKWISE LIMIT
     list_of_commands.push_back(write_parameter(slave_id, 0x83, 3));         // DI: COUNTERCLOCKWISE LIMIT
-    list_of_commands.push_back(write_parameter(slave_id, 0x84, 5));         // DI: ZERO SPEED CLAMP
+    list_of_commands.push_back(write_parameter(slave_id, 0x84, 4));         // DI: C_MODE change Control mode switching
     list_of_commands.push_back(write_parameter(slave_id, 0x85, 20));        // DI: POSITION LOADING
     list_of_commands.push_back(write_parameter(slave_id, 0x86, 11));        // DI: INTSPD1
     list_of_commands.push_back(write_parameter(slave_id, 0x87, 12));        // DI: INTSPD2
@@ -301,8 +302,9 @@ int64_t LCDA6::moveAbsolute(uint8_t slave_id, int64_t position, std::function<st
 {
     if (!controlOverModbus)
         return 0;
-
     std::vector<std::vector<uint8_t>> list_of_commands;
+    if (eControlMode == servomode::PositionSpeed)
+        list_of_commands.push_back(write_parameter(slave_id, 0x1A4, 0x03));     // Set communication inputs (enable, alarm release, c_mode change to position)    
     list_of_commands.push_back(write_parameter(slave_id, 0x190, abs(speed)));   // Internal Position Speed Command 0
     list_of_commands.push_back(write_parameter_32(slave_id, 0x168, position));  // Internal Position Command 0
 
@@ -328,8 +330,10 @@ std::vector<std::vector<uint8_t>> LCDA6::moveVelocity(uint8_t slave_id, int32_t 
 {
     std::vector<std::vector<uint8_t>> list_of_commands ;
     if (!controlOverModbus)
-        return list_of_commands;
-
+    return list_of_commands;
+    
+    if (eControlMode == servomode::PositionSpeed)
+        list_of_commands.push_back(write_parameter(slave_id, 0x1A4, 0x13));     // Set communication inputs (enable, alarm release, c_mode change to speed)     
     // list_of_commands.push_back(write_parameter(slave_id, 0x53 , speed));     // 1st Internal speed - unused - leave for any issues in future
     list_of_commands.push_back(write_parameter(slave_id, 0x140, speed));        // Internal Speed Command 0
     list_of_commands.push_back(write_parameter(slave_id, 0x190, abs(speed)));   // Internal Position Speed Command 0 - speed when setting position
@@ -388,12 +392,14 @@ int8_t LCDA6::ModeToInt(servomode mode){
             return 1;
         case servomode::Torque:
             return 2;
-        case servomode::SpeedPosition:
+        case servomode::PositionSpeed:
             return 3;
-        case servomode::TorquePosition:
+        case servomode::PositionTorque:
             return 4;
-        case servomode::TorqueSpeed:
+        case servomode::SpeedTorque:
             return 5;
+        case servomode::CanOpen:
+            return 10;
         default:
             return 1; // Default to speed
     }

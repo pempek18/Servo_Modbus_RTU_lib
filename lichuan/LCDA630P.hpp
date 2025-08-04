@@ -2,10 +2,17 @@
 #define LCDA630P_MODBUS_RTU_HPP
 
 #include "LichuanMotion.hpp"
-
+enum class servomode
+{
+    speed = 0,
+    position = 1,
+    torque = 2
+};
 
 class LCDA630P : public LichuanMotion
 {
+    private : 
+        servomode eControlMode;
     public : 
         LCDA630P();
         ~LCDA630P();

@@ -1,35 +1,190 @@
 #include <iostream>
 #include <iomanip>
 #include <bitset>
-#include <boost/asio.hpp>
+#include <windows.h>
 #include <chrono>
 #include <thread>
 #include "LCDA6.hpp"
+#include <algorithm>
+#include <vector>
+#include <sstream>
+#include <string>
 
-void send_request_over_serial(std::string request);
-std::vector<uint8_t> send(std::string request, bool print=false, uint8_t frameSize = 8);
-std::vector<uint8_t> send_wrapper(const std::vector<uint8_t>& request) ;
-void read_with_timeout(boost::asio::io_context &io, boost::asio::serial_port &serial, std::vector<uint8_t> &response_vector, int timeout_ms) ;
-std::vector<std::string> splitString(const std::string& str, char delimiter) {
-    std::vector<std::string> tokens;
-    std::stringstream ss(str);
-    std::string token;
+// Function declarations
+std::vector<std::string> splitString(const std::string& str, char delimiter);
 
-    while (std::getline(ss, token, delimiter)) {
-        tokens.push_back(token);
+class WindowsSerial {
+private:
+    HANDLE hSerial;
+    bool isOpen;
+
+public:
+    WindowsSerial() : hSerial(INVALID_HANDLE_VALUE), isOpen(false) {}
+    
+    bool open(const std::string& portName, int baudRate = 57600) {
+        std::string fullPortName = "\\\\.\\" + portName; // Windows requires this format
+        
+        hSerial = CreateFileA(
+            fullPortName.c_str(),
+            GENERIC_READ | GENERIC_WRITE,
+            0,
+            0,
+            OPEN_EXISTING,
+            FILE_ATTRIBUTE_NORMAL,
+            0
+        );
+        
+        if (hSerial == INVALID_HANDLE_VALUE) {
+            std::cerr << "Error opening serial port: " << GetLastError() << std::endl;
+            return false;
+        }
+        
+        // Configure serial port
+        DCB dcbSerialParams = {0};
+        dcbSerialParams.DCBlength = sizeof(dcbSerialParams);
+        
+        if (!GetCommState(hSerial, &dcbSerialParams)) {
+            std::cerr << "Error getting serial port state" << std::endl;
+            CloseHandle(hSerial);
+            return false;
+        }
+        
+        dcbSerialParams.BaudRate = baudRate;
+        dcbSerialParams.ByteSize = 8;
+        dcbSerialParams.StopBits = ONESTOPBIT;
+        dcbSerialParams.Parity = EVENPARITY;
+        
+        if (!SetCommState(hSerial, &dcbSerialParams)) {
+            std::cerr << "Error setting serial port state" << std::endl;
+            CloseHandle(hSerial);
+            return false;
+        }
+        
+        // Set timeouts
+        COMMTIMEOUTS timeouts = {0};
+        timeouts.ReadIntervalTimeout = 50;
+        timeouts.ReadTotalTimeoutConstant = 50;
+        timeouts.ReadTotalTimeoutMultiplier = 10;
+        timeouts.WriteTotalTimeoutConstant = 50;
+        timeouts.WriteTotalTimeoutMultiplier = 10;
+        
+        if (!SetCommTimeouts(hSerial, &timeouts)) {
+            std::cerr << "Error setting timeouts" << std::endl;
+            CloseHandle(hSerial);
+            return false;
+        }
+        
+        isOpen = true;
+        return true;
     }
+    
+    bool write(const std::string& data) {
+        if (!isOpen) return false;
+        
+        DWORD bytesWritten;
+        return WriteFile(hSerial, data.c_str(), data.length(), &bytesWritten, NULL) != 0;
+    }
+    
+    std::vector<uint8_t> read(size_t expectedSize, int timeoutMs = 100) {
+        std::vector<uint8_t> buffer(expectedSize);
+        
+        if (!isOpen) return buffer;
+        
+        DWORD bytesRead = 0;
+        DWORD totalRead = 0;
+        
+        auto startTime = std::chrono::steady_clock::now();
+        
+        while (totalRead < expectedSize) {
+            auto currentTime = std::chrono::steady_clock::now();
+            auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - startTime);
+            
+            if (elapsed.count() > timeoutMs) {
+                std::cerr << "Read timeout" << std::endl;
+                break;
+            }
+            
+            if (ReadFile(hSerial, buffer.data() + totalRead, expectedSize - totalRead, &bytesRead, NULL)) {
+                totalRead += bytesRead;
+            } else {
+                std::cerr << "Read error: " << GetLastError() << std::endl;
+                break;
+            }
+        }
+        
+        buffer.resize(totalRead);
+        return buffer;
+    }
+    
+    void close() {
+        if (isOpen) {
+            CloseHandle(hSerial);
+            isOpen = false;
+        }
+    }
+    
+    ~WindowsSerial() {
+        close();
+    }
+};
 
-    return tokens;
+// Global serial instance
+WindowsSerial serial;
+
+std::vector<uint8_t> send_wrapper(const std::vector<uint8_t>& request) {
+    std::string request_string = "";
+    
+    for (int i = 0; i < request.size(); i++) {
+        request_string += static_cast<char>(request[i]);
+    }
+    
+    uint8_t frameSize = 8;
+    if (((uint8_t)request[5]) < frameSize)
+        frameSize = 8;
+    else
+        frameSize = ((uint8_t)request[5]);
+    
+    std::cout << "frame size : " << std::dec << +frameSize << std::endl;
+    
+    // Send data
+    if (!serial.write(request_string)) {
+        std::cerr << "Failed to write to serial port" << std::endl;
+        return std::vector<uint8_t>();
+    }
+    
+    // Read response
+    std::vector<uint8_t> response = serial.read(frameSize, 100);
+    
+    // Print for debugging
+    std::cout << "send: ";
+    for (char c : request_string) {
+        std::cout << "0x" << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(c) << " ";
+    }
+    std::cout << std::endl;
+    
+    std::cout << "receive: ";
+    for (uint8_t c : response) {
+        std::cout << "0x" << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(c) << " ";
+    }
+    std::cout << std::endl;
+    
+    return response;
 }
-
 int main()
 {
+    // Initialize serial port (change COM port as needed)
+    if (!serial.open("COM2", 57600)) {
+        std::cerr << "Failed to open serial port. Make sure the port exists and is not in use." << std::endl;
+        return 1;
+    }
+    
+    std::cout << "Serial port opened successfully!" << std::endl;    
     LCDA6 servo;
     char mode ;
     std::string s ; 
     while (true)
     {
-        std::cout << "choose what what to do: i[config], r[read], w[write], e[raw one rotation], p[acutal position], c[acutal pulse position], t[torque], l[loop], m[move], a[absolute], s[speed], d[disable], q[quit]" << std::endl ; 
+        std::cout << "choose what what to do: i[config], r[read], w[write], e[raw one rotation], p[acutal position], c[acutal pulse position], t[torque], l[position loop], j[time based loop], m[move], a[absolute], s[speed], d[disable], q[quit]" << std::endl ; 
         std::cin >> mode ; 
         switch (mode)
         {
@@ -200,17 +355,24 @@ int main()
                     servo.moveVelocity(1, -speed, send_wrapper);
                     i++;
                 } 
-                
-                std::this_thread::sleep_for(std::chrono::milliseconds(100));
-                if (std::cin.rdbuf()->in_avail()) {
-                    std::cin.get(); // Clear the input buffer
-                    break;
+                for (int i = 0; i < 100; i++)
+                {
+                    if (std::cin.rdbuf()->in_avail()) {
+                        char c = std::cin.get(); // Get the pressed key
+                        if (c == 'q' || c == 'Q') {
+                            goto end_l_loop;
+                        }
+                    }
+                    std::this_thread::sleep_for(std::chrono::milliseconds(1));
                 }
+                std::cout << std::endl;
+                break;
+            end_l_loop:
+                break;
             }
         }
         case 'j' :
         {
-        // INSERT_YOUR_CODE
             std::cout << "Endless loop (time-based toggle), press any key to stop" << std::endl;
             std::cout << "Type speed value, toggle interval in ms, and add_pos (comma separated, e.g. 50,1000,125), or q to quit" << std::endl;
             std::cin >> s;
@@ -314,126 +476,15 @@ int main()
     return 0;
 }
 
-std::vector<uint8_t> send(std::string request, bool print, uint8_t frameSize)
-{
-    std::vector<uint8_t> response_vector(frameSize) ; 
-    try
-    {
-        boost::asio::io_service io;
-        boost::asio::serial_port serial(io, "/dev/ttyUSB0"); // Change to your port
+// Function definitions
+std::vector<std::string> splitString(const std::string& str, char delimiter) {
+    std::vector<std::string> tokens;
+    std::stringstream ss(str);
+    std::string token;
 
-        // Set serial port parameters
-        serial.set_option(boost::asio::serial_port_base::baud_rate(57600));
-        serial.set_option(boost::asio::serial_port_base::character_size(8));
-        serial.set_option(boost::asio::serial_port_base::parity(boost::asio::serial_port_base::parity::even));
-        serial.set_option(boost::asio::serial_port_base::stop_bits(boost::asio::serial_port_base::stop_bits::one));
-
-        boost::asio::write(serial, boost::asio::buffer(request));
-
-        if (print)
-        {
-            std::cout << "send: " ;
-
-            for (char c : request)
-            {
-                std::cout << "0x" << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(c) << " ";
-            }
-            std::cout << std::endl;
-        }
-
-        read_with_timeout(io, serial, response_vector, 100);
-        
-        if (print)
-        {
-            std::cout << "recive: " ;
-
-            for (char c : response_vector)
-            {
-                std::cout << "0x" << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(c) << " ";
-            }
-            std::cout << std::endl;  
-        }      
-
-        return response_vector ;
+    while (std::getline(ss, token, delimiter)) {
+        tokens.push_back(token);
     }
-    catch (std::exception &e)
-    {
-        std::cerr << "Error: " << e.what() << std::endl;
-        return response_vector ;
-    }
-}
-std::vector<uint8_t> send_wrapper(const std::vector<uint8_t> &request)
-{
-    std::string request_string = "";
 
-    for (int i = 0; i < request.size() ; i++)
-    {
-        request_string += static_cast<char>(request[i]);        // Get low byte
-    }
-    uint8_t frameSize = 8 ; 
-    if (  ((uint8_t)request[5]) < frameSize)
-        frameSize = 8 ; 
-    else
-        frameSize = ((uint8_t)request[5]) ; 
-    std::cout << "frame size : " << std::dec << +frameSize << std::endl ; //+ - promotion to a printable type
-    std::vector<uint8_t> response = send(request_string, true, frameSize);
-    return response ;
-}
-void read_with_timeout(boost::asio::io_context &io, boost::asio::serial_port &serial, std::vector<uint8_t> &response_vector, int timeout_ms)
-{
-    boost::asio::deadline_timer timer(io, boost::posix_time::milliseconds(timeout_ms));
-    bool data_received = false;
-
-    timer.async_wait([&](const boost::system::error_code &ec) {
-        if (!ec) serial.cancel();  // Cancel read operation if timeout occurs
-    });
-
-    boost::asio::async_read(serial, boost::asio::buffer(response_vector),
-        [&](const boost::system::error_code &ec, std::size_t length) {
-            data_received = !ec;
-            timer.cancel();  // Cancel timer if data is received
-        });
-
-    io.run(); // Run the I/O context
-
-    if (!data_received) {
-        std::cerr << "Timeout reached, no data received." << std::endl;
-    }
-}
-void send_request_over_serial(std::string request)
-{
-    std::cout << "Request bytes: ";
-    for (char c : request) {
-        std::cout << " 0x" << std::hex << std::setw(2) << std::setfill('0') 
-                  << static_cast<int>(static_cast<unsigned char>(c));
-    }
-    std::cout << std::endl;
-    std::cout << "Sending request: " << request << std::endl;
-    try
-    {
-        boost::asio::io_service io;
-        boost::asio::serial_port serial(io, "/dev/ttyUSB0"); // Change to your port
-
-        // Set serial port parameters
-        serial.set_option(boost::asio::serial_port_base::baud_rate(9600));
-        serial.set_option(boost::asio::serial_port_base::character_size(8));
-        serial.set_option(boost::asio::serial_port_base::parity(boost::asio::serial_port_base::parity::none));
-        serial.set_option(boost::asio::serial_port_base::stop_bits(boost::asio::serial_port_base::stop_bits::one));
-
-        boost::asio::write(serial, boost::asio::buffer(request));
-
-        // Example: Read response from the serial port
-        char response[8];
-        size_t n = boost::asio::read(serial, boost::asio::buffer(response, sizeof(response)));
-        std::cout << "Response: " << std::string(response, n) << std::endl;
-        for (char c : response) {
-            std::cout << " 0x" << std::hex << std::setw(2) << std::setfill('0') 
-            << static_cast<int>(static_cast<unsigned char>(c));
-        }
-        std::cout << std::endl;
-    }
-    catch (std::exception &e)
-    {
-        std::cerr << "Error: " << e.what() << std::endl;
-    }
+    return tokens;
 }
