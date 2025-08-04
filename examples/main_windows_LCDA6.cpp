@@ -173,7 +173,7 @@ std::vector<uint8_t> send_wrapper(const std::vector<uint8_t>& request) {
 int main()
 {
     // Initialize serial port (change COM port as needed)
-    if (!serial.open("COM2", 57600)) {
+    if (!serial.open("COM2", 19200)) {
         std::cerr << "Failed to open serial port. Make sure the port exists and is not in use." << std::endl;
         return 1;
     }
@@ -196,18 +196,17 @@ int main()
         case 'r':
         {
             std::cout << "*****************Read Param*****************" << std::endl;
-            int paramGroup, paramOffset ; 
             std::cout << "Type Group Parameter and Offset in format GROUP,OFFSET, SIZE[OPTIONAL]" << std::endl ;
             std::cin >> s ;
             std::vector<std::string> params = splitString(s, ',');
-            paramGroup = std::stoi(params[0]);
-            paramOffset = std::stoi(params[1]);
+            int address = std::stoi(params[0]);
+            uint8_t size = 8;
             if (params.size() < 3)
-                servo.read_parameter(1, paramGroup, paramOffset, send_wrapper);
+                servo.read_parameter(1, address, size, send_wrapper);
             else 
             {
-                uint8_t size = std::stoi(params[2]);
-                servo.read_parameter(1, paramGroup, paramOffset, size, send_wrapper);
+                size = std::stoi(params[2]);
+                servo.read_parameter(1, address, size, send_wrapper);
             }
             std::cout << "*****************Read Param*****************" << std::endl;  
             break; 
@@ -215,23 +214,25 @@ int main()
         case 'w':
         {
             std::cout << "*****************Write Param*****************" << std::endl;
-            int paramGroup, paramOffset ;
             int32_t value ;  
-            std::cout << "Type Group Parameter, Offset and value in format GROUP,OFFSET,VALUE" << std::endl ;
+            int address = 0;
+            std::cout << "Type Group Parameter, Offset and value in format ADDRESS,VALUE" << std::endl ;
             std::cin >> s ;
             std::vector<std::string> params = splitString(s, ',');
-            if (params.size() < 3 )
+            if (params.size() == 2 )
             {
-                std::cerr << "type at least 3 values, typed: " << params.size() << std::endl ;
+                address = std::stoi(params[0]);
+                value = std::stoi(params[1]);
+            }
+            else
+            {
+                std::cerr << "type at least 2 values, typed: " << params.size() << std::endl ;
                 break;
             }
-            paramGroup = std::stoi(params[0]);
-            paramOffset = std::stoi(params[1]);
-            value = std::stoi(params[2]);
             if (abs(value) > 65535)
-                servo.write_parameter_32(1, paramGroup, paramOffset, value, send_wrapper);
+                servo.write_parameter_32(1, address, value, send_wrapper);
             else
-                servo.write_parameter(1, paramGroup, paramOffset, value, send_wrapper);
+                servo.write_parameter(1, address, value, send_wrapper);
             std::cout << "*****************Write Param*****************" << std::endl;  
             break; 
         }    
@@ -288,7 +289,7 @@ int main()
             int32_t position = 10000;
             int32_t speed = 1000;
             float torque = 10.0;
-            std::vector<std::vector<uint8_t>> config = servo.config_for_modbus_control_position(1, send_wrapper);
+            std::vector<std::vector<uint8_t>> config = servo.config_for_modbus_control_position_speed(1, send_wrapper);
             if (params.size() == 1)
             {
                 position = std::stoi(params[0]);
@@ -449,7 +450,7 @@ int main()
             std::cout << "Type position to move absolute or q to quit" << std::endl ;
             std::cin >> s ;      
             int64_t position = std::stoi(s);  
-            servo.config_for_modbus_control_position(1, send_wrapper);
+            servo.config_for_modbus_control_position_speed(1, send_wrapper);
             servo.moveAbsolute(1, position, send_wrapper);
             break;
         }                                  
@@ -457,9 +458,9 @@ int main()
         {
             std::cout << "Type speed value or q to quit" << std::endl ;
             std::cin >> s ;      
-            int32_t position = std::stoi(s);  
-            std::vector<std::vector<uint8_t>> config = servo.config_for_modbus_control_speed(1, send_wrapper);
-            std::vector<std::vector<uint8_t>> one_rot = servo.moveVelocity(1, position, send_wrapper);  
+            int32_t speed = std::stoi(s);  
+            std::vector<std::vector<uint8_t>> config = servo.config_for_modbus_control_position_speed(1, send_wrapper);
+            std::vector<std::vector<uint8_t>> one_rot = servo.moveVelocity(1, speed, send_wrapper);  
             break;
         }         
         case 'd' :

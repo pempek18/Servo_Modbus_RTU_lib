@@ -26,7 +26,7 @@ add_library(Lichuan_RS_Libary STATIC lichuan/LichuanMotion.cpp lichuan/LCDA630P.
 
 # Windows-specific examples
 if(IS_WINDOWS)
-    add_executable(example_windows_native examples/main_windows_LCDA6.cpp)
+    add_executable(main_windows_LCDA6 examples/main_windows_LCDA6.cpp)
     message(STATUS "Added Windows native example")
 endif()
 
@@ -64,6 +64,6 @@ if(IS_LINUX)
 endif()
 # Windows-specific example configuration
 if(IS_WINDOWS)
-    target_include_directories(example_windows_native PRIVATE ${CMAKE_SOURCE_DIR}/lichuan)
-    target_link_libraries(example_windows_native PRIVATE Lichuan_RS_Libary ${WINDOWS_LIBS})
+    target_include_directories(main_windows_LCDA6 PRIVATE ${CMAKE_SOURCE_DIR}/lichuan)
+    target_link_libraries(main_windows_LCDA6 PRIVATE Lichuan_RS_Libary ${WINDOWS_LIBS})
 endif()

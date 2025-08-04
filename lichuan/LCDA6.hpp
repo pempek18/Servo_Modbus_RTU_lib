@@ -17,7 +17,7 @@ enum class servomode : uint8_t
 class LCDA6 : public LichuanMotion
 {
     private:
-        servomode eControlMode = servomode::PositionSpeed;
+        servomode eControlMode = servomode::Position;
         int8_t ModeToInt(servomode mode);
     public :
         LCDA6();
