@@ -24,6 +24,9 @@
 #include <optional>
 #include <chrono>
 #include <thread>
+#include "MB/modbusException.hpp"
+#include "MB/modbusRequest.hpp"
+#include "MB/modbusResponse.hpp"
 
 union Converter64 {
     int64_t as_int64;

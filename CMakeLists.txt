@@ -21,6 +21,15 @@ if(WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     message(STATUS "Using MSYS2/MinGW compiler")
 endif()
 
+# Add Modbus submodule with Windows-specific configuration
+if(IS_WINDOWS)
+    # Disable TCP communication on Windows to avoid libnet.h dependency
+    set(MODBUS_TCP_COMMUNICATION OFF CACHE BOOL "Disable TCP on Windows" FORCE)
+    message(STATUS "Disabled Modbus TCP on Windows to avoid libnet.h dependency")
+endif()
+
+add_subdirectory(Modbus)
+
 # Add the library
 add_library(Lichuan_RS_Libary STATIC lichuan/LichuanMotion.cpp lichuan/LCDA630P.cpp lichuan/LCDA6.cpp)
 
@@ -42,6 +51,9 @@ endif()
 # Link Boost to the library
 target_link_libraries(Lichuan_RS_Libary PRIVATE ${Boost_LIBRARIES})
 
+# Link Modbus to the library
+target_link_libraries(Lichuan_RS_Libary PRIVATE Modbus_Core)
+target_include_directories(Lichuan_RS_Libary PRIVATE ${CMAKE_SOURCE_DIR}/Modbus/include)
 # Windows-specific libraries
 if(IS_WINDOWS)
     # Add Windows-specific libraries for native Windows example
@@ -65,5 +77,6 @@ endif()
 # Windows-specific example configuration
 if(IS_WINDOWS)
     target_include_directories(main_windows_LCDA6 PRIVATE ${CMAKE_SOURCE_DIR}/lichuan)
+    target_include_directories(main_windows_LCDA6 PRIVATE ${CMAKE_SOURCE_DIR}/Modbus/include)
     target_link_libraries(main_windows_LCDA6 PRIVATE Lichuan_RS_Libary ${WINDOWS_LIBS})
 endif()

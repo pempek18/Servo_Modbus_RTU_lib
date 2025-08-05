@@ -32,18 +32,16 @@ std::vector<int32_t> LichuanMotion::processListOfCommands(std::vector<std::vecto
 
 std::vector<uint8_t> LichuanMotion::read_parameter(uint8_t slave_id, uint8_t group_number, uint8_t parameter_offset, uint8_t size, std::optional<std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)>> sendFunction)
 {
-    std::vector<uint8_t> frame;
-    frame.push_back(slave_id); // ADR
-    frame.push_back(0x03);     // Read Holding Register
-    frame.push_back(group_number);
-    frame.push_back(parameter_offset);
-    frame.push_back(0 >> 8);
-    frame.push_back(size & 0xFF);
+    int16_t address = group_number << 8 | parameter_offset;
+    MB::ModbusRequest request(slave_id, MB::utils::ReadAnalogOutputHoldingRegisters, address, size);
+    
+    std::vector<uint8_t> frame = request.toRaw();
+
 
     // Calculate CRC using uint8_t data
-    uint16_t crc = crcValueCalc(frame.data(), frame.size());
-    frame.push_back(crc & 0xFF);        // Low byte
-    frame.push_back((crc >> 8) & 0xFF); // High byte
+    uint16_t CRC = MB::utils::calculateCRC(frame);
+    auto CRCptr  = reinterpret_cast<uint8_t *>(&CRC);
+    frame.insert(frame.end(), CRCptr, CRCptr + 2);
 
 #if DEBUG_SERIAL
     debug_print_frame(frame, true);
@@ -57,23 +55,21 @@ std::vector<uint8_t> LichuanMotion::read_parameter(uint8_t slave_id, uint8_t gro
 
 std::vector<uint8_t> LichuanMotion::read_parameter(uint8_t slave_id, uint16_t address, uint16_t size, std::optional<std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)>> sendFunction)
 {
-    return read_parameter(slave_id, address >> 8, address & 0xFF, size);
+    return read_parameter(slave_id, address >> 8, address & 0xFF, size, sendFunction);
 }
 
 std::vector<uint8_t> LichuanMotion::write_parameter(uint8_t slave_id, uint8_t group_number, uint8_t parameter_offset, int16_t value, std::optional<std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)>> sendFunction)
 {
-    std::vector<uint8_t> frame;
-    frame.push_back(slave_id); // ADR
-    frame.push_back(0x06);     // Write Holding Register
-    frame.push_back(group_number);
-    frame.push_back(parameter_offset);
-    frame.push_back(value >> 8);
-    frame.push_back(value & 0xFF);
+    int16_t address = group_number << 8 | parameter_offset;
+    std::vector<MB::ModbusCell> modbusValues;
+    modbusValues.emplace_back(static_cast<uint16_t>(value));
+    MB::ModbusRequest request(slave_id, MB::utils::WriteSingleAnalogOutputRegister, address, 1, modbusValues);
+    std::vector<uint8_t> frame = request.toRaw();
 
     // Calculate CRC using uint8_t data
-    uint16_t crc = crcValueCalc(frame.data(), frame.size());
-    frame.push_back(crc & 0xFF);        // Low byte
-    frame.push_back((crc >> 8) & 0xFF); // High byte
+    uint16_t CRC = MB::utils::calculateCRC(frame);
+    auto CRCptr  = reinterpret_cast<uint8_t *>(&CRC);
+    frame.insert(frame.end(), CRCptr, CRCptr + 2);
 #if DEBUG_SERIAL
     debug_print_frame(frame, true);
 #endif
@@ -93,32 +89,37 @@ std::vector<uint8_t> LichuanMotion::write_parameter(uint8_t slave_id, uint16_t a
 
 std::vector<uint8_t> LichuanMotion::write_parameter_32(uint8_t slave_id, uint8_t group_number, uint8_t parameter_offset, int32_t value, std::optional<std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)>> sendFunction)
 {
-    std::vector<uint8_t> frame;
-    frame.push_back(slave_id); // ADR
-    frame.push_back(0x10);     // Write Holding Register
-    frame.push_back(group_number);
-    frame.push_back(parameter_offset);
-    frame.push_back(0x00); // Number of registers to write HIGH 8 bits
-    frame.push_back(0x02); // Number of registers to write LOW 8 bits
-    frame.push_back(0x04); // Number of bytes to write
-
+    std::vector<uint8_t> values ;
     if (lower16_bit_first)
     {
-        frame.push_back((value >> 8) & 0xFF); //Write the high 8 bits of the start function code, hex
-        frame.push_back(value & 0xFF); //Write the lower 8 bits of the start function code, hex
-        frame.push_back((value >> 24) & 0xFF);//Write the high 8 bits of the start function code group offset + 1, hex
-        frame.push_back((value >> 16) & 0xFF);//Write the low 8 bits of the start function code group offset + 1, hex
+        values.push_back((value >> 8) & 0xFF); //Write the high 8 bits of the start function code, hex
+        values.push_back(value & 0xFF); //Write the lower 8 bits of the start function code, hex
+        values.push_back((value >> 24) & 0xFF);//Write the high 8 bits of the start function code group offset + 1, hex
+        values.push_back((value >> 16) & 0xFF);//Write the low 8 bits of the start function code group offset + 1, hex
     }else
     {
-        frame.push_back((value >> 24) & 0xFF);//Write the high 8 bits of the start function code group offset + 1, hex
-        frame.push_back((value >> 16) & 0xFF);//Write the low 8 bits of the start function code group offset + 1, hex
-        frame.push_back((value >> 8) & 0xFF); //Write the high 8 bits of the start function code, hex
-        frame.push_back(value & 0xFF); //Write the lower 8 bits of the start function code, hex
+        values.push_back((value >> 24) & 0xFF);//Write the high 8 bits of the start function code group offset + 1, hex
+        values.push_back((value >> 16) & 0xFF);//Write the low 8 bits of the start function code group offset + 1, hex
+        values.push_back((value >> 8) & 0xFF); //Write the high 8 bits of the start function code, hex
+        values.push_back(value & 0xFF); //Write the lower 8 bits of the start function code, hex
     }
+    
+    // Convert uint8_t values to ModbusCell values (2 registers = 4 bytes)
+    std::vector<MB::ModbusCell> modbusValues;
+    for (size_t i = 0; i < values.size(); i += 2) {
+        uint16_t regValue = (static_cast<uint16_t>(values[i]) << 8) | values[i + 1];
+        modbusValues.emplace_back(regValue);
+    }
+    int16_t address = group_number << 8 | parameter_offset;
+    MB::ModbusRequest request(slave_id, MB::utils::WriteMultipleAnalogOutputHoldingRegisters, address, 2, modbusValues);
+    std::vector<uint8_t> frame = request.toRaw();
+
     // Calculate CRC using uint8_t data
-    uint16_t crc = crcValueCalc(frame.data(), frame.size());
-    frame.push_back(crc & 0xFF);        // Low byte
-    frame.push_back((crc >> 8) & 0xFF); // High byte
+    uint16_t CRC = MB::utils::calculateCRC(frame);
+    auto CRCptr  = reinterpret_cast<uint8_t *>(&CRC);
+    frame.insert(frame.end(), CRCptr, CRCptr + 2);
+
+
 #if DEBUG_SERIAL
     debug_print_frame(frame, true);
 #endif
@@ -142,68 +143,22 @@ std::string LichuanMotion::vector_to_string(std::vector<uint8_t> frame)
     // Convert uint16_t array to string
     std::string request_string = "";
 
-    for (int i = 0; i < frame.size() ; i++)
-    {
-        request_string += static_cast<char>(frame[i]);        // Get low byte
-    }
+    MB::ModbusRequest request = MB::ModbusRequest::fromRaw(frame);
+    request_string = request.toString(); 
     return request_string ;
 };
 int32_t LichuanMotion::parseModbusResponse(const std::vector<uint8_t> &response)
 {
-    // Extract first word (0x2d15)
-    int32_t value = 0;
-    if (response.size() < 7) {
-        return 0xFFFFFFFF ;
-    }
-    else if (lower16_bit_first && response.size() > 8 )
-    {
-        converter.as_uint8[1] = response[3];
-        converter.as_uint8[0] = response[4];
-        converter.as_uint8[3] = response[5];
-        converter.as_uint8[2] = response[6];
-        value = converter.as_int32[0];
-#if DEBUG_SERIAL
-    DEBUG_SERIAL_PRINTLN("lower16_bit_first && response.size() > 8");
-        std::stringstream ss ;
-        ss << std::hex << std::setfill('0') << std::setw(2) << "adr: " << static_cast<int>(response[0]) << "\tf :" <<
-            static_cast<int>(response[1]) << "\tsize: " << std::dec << std::setw(2) << response[2] <<
-            "\tvalue : " << value << "\t hex: " << std::hex << std::setfill('0') << std::setw(2) << "0x" <<
-            static_cast<int>(value) << std::endl;
-        DEBUG_SERIAL_PRINT(ss.str().c_str());
-#endif
-    }
-    else if (!lower16_bit_first && response.size() > 8 )
-    {
-        converter.as_uint8[0] = response[3];
-        converter.as_uint8[1] = response[4];
-        converter.as_uint8[2] = response[5];
-        converter.as_uint8[3] = response[6];
-        value = converter.as_int32[0];
-#if DEBUG_SERIAL
-        DEBUG_SERIAL_PRINTLN("!lower16_bit_first && response.size() > 8 ");
-        std::stringstream ss ;
-        ss << std::hex << std::setfill('0') << std::setw(2) << "adr: " << static_cast<int>(response[0]) << "\tf :" <<
-            static_cast<int>(response[1]) << "\tp" << static_cast<int>(response[2]) << "-" <<
-            static_cast<int>(response[3]) << "\tsize: " << std::dec << std::setw(2) << response.size() <<
-            "\tvalue : " << value << "\t hex: " << std::hex << std::setfill('0') << std::setw(2) << "0x" <<
-            static_cast<int>(value) << std::endl;
-        DEBUG_SERIAL_PRINT(ss.str().c_str());
-#endif
-    }else
-    {
-        value = static_cast<int16_t>(response[3] << 8 ) | response[4];
-#if DEBUG_SERIAL
-        DEBUG_SERIAL_PRINTLN("response.size() <= 8 ");
-        std::stringstream ss ;
-        ss << std::hex << std::setfill('0') << std::setw(2) << "adr: " << static_cast<int>(response[0]) << "\tf :" <<
-            static_cast<int>(response[1]) << "\tsize: " << std::dec << std::setw(2) << static_cast<int>(response[2]) <<
-            "\tvalue : " << value << "\t hex: " << std::hex << std::setfill('0') << std::setw(2) << "0x" <<
-            static_cast<int>(value) << std::endl;
-        DEBUG_SERIAL_PRINT(ss.str().c_str());
-#endif
-    }
-
-    return value ;
+    MB::ModbusResponse rsp(response);
+    std::stringstream ss;
+    ss << "Function Type: " << rsp.functionType() << std::endl;
+    ss << "Function Code: " << rsp.functionCode() << std::endl;
+    ss << "Slave ID: " << rsp.slaveID() << std::endl;
+    ss << "Register Address: " << rsp.registerAddress() << std::endl;
+    ss << "Register Count: " << rsp.registerValues().size() << std::endl;
+    ss << "Register Values: " << rsp.registerValues()[0].reg() << std::endl;
+    std::cout << ss.str() << std::endl;
+    return rsp.registerValues()[0].reg();
 };
 uint16_t LichuanMotion::crcValueCalc(const uint8_t *data, uint16_t length)
 {

@@ -178,9 +178,12 @@ std::vector<std::vector<uint8_t>> LCDA6::config_for_modbus_control_position_spee
     std::vector<std::vector<uint8_t>> list_of_commands ;
     // If already in speed mode, do nothing
     if (controlOverModbus && eControlMode == servomode::PositionSpeed)
+    {
+        DEBUG_SERIAL_PRINTLN("*****************Config for speed position mode already in*****************");
         return list_of_commands;
+    }
     eControlMode = servomode::PositionSpeed;
-
+    DEBUG_SERIAL_PRINTLN("*****************Config for speed position mode*****************");
     // Set speed mode
     list_of_commands.push_back(write_parameter(slave_id, 0x02, ModeToInt(servomode::PositionSpeed)));
     // Set speed & position source
@@ -224,7 +227,6 @@ std::vector<std::vector<uint8_t>> LCDA6::config_for_modbus_control_position_spee
     // Save parameters
     list_of_commands.push_back(write_parameter(slave_id, 0x1A7, 0x0801));
 
-    DEBUG_SERIAL_PRINTLN("*****************Config for speed position mode*****************");
     processListOfCommands(list_of_commands, sendFunction);
     DEBUG_SERIAL_PRINTLN("*****************Config for speed position mode*****************");
     return list_of_commands;
@@ -405,62 +407,62 @@ int8_t LCDA6::ModeToInt(servomode mode){
     }
 }
 
-int32_t LCDA6::parseModbusResponse(const std::vector<uint8_t>& response){
-    int32_t val = 0;
+// int32_t LCDA6::parseModbusResponse(const std::vector<uint8_t>& response){
+//     int32_t val = 0;
 
-    int16_t LSB = (lower16_bit_first) ? 8 : 0;
-    int16_t MSB = (lower16_bit_first) ? 0 : 8;
+//     int16_t LSB = (lower16_bit_first) ? 8 : 0;
+//     int16_t MSB = (lower16_bit_first) ? 0 : 8;
 
-    if (response.size() < 7) {
-        return 0x00;
-    }
-    int16_t ID = static_cast<int>(response[0]);
-    int16_t FN = static_cast<int>(response[1]);
+//     if (response.size() < 7) {
+//         return 0x00;
+//     }
+//     int16_t ID = static_cast<int>(response[0]);
+//     int16_t FN = static_cast<int>(response[1]);
 
-    std::stringstream ss;
-    ss << std::hex << std::setfill('0') << std::setw(2)
-       << "ID: "  << ID
-       << "\tFN:" << FN;
+//     std::stringstream ss;
+//     ss << std::hex << std::setfill('0') << std::setw(2)
+//        << "ID: "  << ID
+//        << "\tFN:" << FN;
 
-    switch (FN) {
-        case 0x03:{ // Read multiple registers
-            int16_t len = static_cast<int16_t>(response[2]);
-            ss << "\tbytes: " << std::dec << len;
+//     switch (FN) {
+//         case 0x03:{ // Read multiple registers
+//             int16_t len = static_cast<int16_t>(response[2]);
+//             ss << "\tbytes: " << std::dec << len;
 
-            // Iterate over the registers
-            for(int i = 0; i < len; i+=2){
-                val = (static_cast<int16_t>(response[3+2*i]) << LSB)  | (static_cast<int16_t>(response[4+2*i]) << MSB);
-                ss << "\tvalue: " << val
-                   << "\thex: "   << std::hex << "0x" << std::setfill('0') << std::setw(2) << static_cast<int>(val);
-            }
-            ss << std::endl;
-            break;
-        }
-        case 0x06:{ // Write single register
-            int16_t addr = (static_cast<int16_t>(response[2]) << LSB)  | (static_cast<int16_t>(response[3]) << MSB);
-            ss << "\taddr: "<< std::hex << "0x" << std::setfill('0') << std::setw(2) << static_cast<int>(addr);
+//             // Iterate over the registers
+//             for(int i = 0; i < len; i+=2){
+//                 val = (static_cast<int16_t>(response[3+2*i]) << LSB)  | (static_cast<int16_t>(response[4+2*i]) << MSB);
+//                 ss << "\tvalue: " << val
+//                    << "\thex: "   << std::hex << "0x" << std::setfill('0') << std::setw(2) << static_cast<int>(val);
+//             }
+//             ss << std::endl;
+//             break;
+//         }
+//         case 0x06:{ // Write single register
+//             int16_t addr = (static_cast<int16_t>(response[2]) << LSB)  | (static_cast<int16_t>(response[3]) << MSB);
+//             ss << "\taddr: "<< std::hex << "0x" << std::setfill('0') << std::setw(2) << static_cast<int>(addr);
 
-            val = (static_cast<int16_t>(response[4]) << LSB)  | (static_cast<int16_t>(response[5]) << MSB);
-            ss << "\tvalue: " << std::dec << val
-               << "\thex: "   << std::hex << "0x" << std::setfill('0') << std::setw(2) << static_cast<int>(val)
-               << std::endl;
-            break;
-        }
-        case 0x10:{ // Write 32-bit register
-            int16_t addr = (static_cast<int16_t>(response[2]) << LSB)  | (static_cast<int16_t>(response[3]) << MSB);
-            ss << "\taddr: "<< std::hex << "0x" << std::setfill('0') << std::setw(2) << static_cast<int>(addr);
-            val = (static_cast<int16_t>(response[4]) << LSB)  | (static_cast<int16_t>(response[5]) << MSB);
+//             val = (static_cast<int16_t>(response[4]) << LSB)  | (static_cast<int16_t>(response[5]) << MSB);
+//             ss << "\tvalue: " << std::dec << val
+//                << "\thex: "   << std::hex << "0x" << std::setfill('0') << std::setw(2) << static_cast<int>(val)
+//                << std::endl;
+//             break;
+//         }
+//         case 0x10:{ // Write 32-bit register
+//             int16_t addr = (static_cast<int16_t>(response[2]) << LSB)  | (static_cast<int16_t>(response[3]) << MSB);
+//             ss << "\taddr: "<< std::hex << "0x" << std::setfill('0') << std::setw(2) << static_cast<int>(addr);
+//             val = (static_cast<int16_t>(response[4]) << LSB)  | (static_cast<int16_t>(response[5]) << MSB);
 
-            ss << "\tregs: "<< std::dec << val
-               << "\t\thex: "  << std::hex << "0x" << std::setfill('0') << std::setw(2) << static_cast<int>(val)
-               << std::endl;
-            break;
-        }
-        default:
-            return 0x00;
-            break;
-    }
+//             ss << "\tregs: "<< std::dec << val
+//                << "\t\thex: "  << std::hex << "0x" << std::setfill('0') << std::setw(2) << static_cast<int>(val)
+//                << std::endl;
+//             break;
+//         }
+//         default:
+//             return 0x00;
+//             break;
+//     }
 
-    DEBUG_SERIAL_PRINT(ss.str().c_str());
-    return val;
-}
+//     DEBUG_SERIAL_PRINT(ss.str().c_str());
+//     return val;
+// }
