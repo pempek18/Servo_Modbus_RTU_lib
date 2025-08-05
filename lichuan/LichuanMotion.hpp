@@ -167,6 +167,16 @@ class LichuanMotion
         /// @param sendFunction provide function for sending RS-485
         /// @return vector of mupliple frames
         virtual std::vector<std::vector<uint8_t>>  moveVelocity(uint8_t slave_id, int32_t speed, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction) = 0;
+        /// @brief Check if servo is in target position
+        /// @param slave_id Servo addres
+        /// @param sendFunction provide function for sending RS-485
+        /// @return true if in target position
+        virtual bool inTargetPosition(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction) = 0;
+        /// @brief Check if servo is in target speed
+        /// @param slave_id Servo addres
+        /// @param sendFunction provide function for sending RS-485
+        /// @return true if in target speed
+        virtual bool inTargetSpeed(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction) = 0;
         /// @brief Control servo in speed mode
         /// @param slave_id Servo addres
         /// @param torque setpoint torque in Nm

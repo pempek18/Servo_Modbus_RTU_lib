@@ -149,7 +149,7 @@ std::string LichuanMotion::vector_to_string(std::vector<uint8_t> frame)
 };
 int32_t LichuanMotion::parseModbusResponse(const std::vector<uint8_t> &response)
 {
-    MB::ModbusResponse rsp(response);
+    MB::ModbusResponse rsp = MB::ModbusResponse::fromRaw(response);
     std::stringstream ss;
     ss << "Function Type: " << rsp.functionType() << std::endl;
     ss << "Function Code: " << rsp.functionCode() << std::endl;
