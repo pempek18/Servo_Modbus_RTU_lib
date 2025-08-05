@@ -187,11 +187,14 @@ std::vector<std::vector<uint8_t>> LCDA6::config_for_modbus_control_position_spee
     // Set speed mode
     list_of_commands.push_back(write_parameter(slave_id, 0x02, ModeToInt(servomode::PositionSpeed)));
     // Set speed & position source
-    list_of_commands.push_back(write_parameter(slave_id, 0x05, 3));         // (0) Analog / (1-3) Internal speed selector
-    list_of_commands.push_back(write_parameter(slave_id, 0x90, 0));         // Extended function mode (using communication control).
+    list_of_commands.push_back(write_parameter(slave_id, 0x04, 0x00));      //(R) Enable traveling limit setting - (0) Enable & use PA_066 / (1) Disable
+    list_of_commands.push_back(write_parameter(slave_id, 0x05, 0));         // (0) Analog / (1-3) Internal speed selector
+    list_of_commands.push_back(write_parameter(slave_id, 0x58, 200));       // Acceleration time
+    list_of_commands.push_back(write_parameter(slave_id, 0x59, 200));       // Deceleration time
+    list_of_commands.push_back(write_parameter(slave_id, 0x90, 1));         // Extended function mode (using communication control).
     list_of_commands.push_back(write_parameter(slave_id, 0x92, 0));         // Set Commanded speed to Internal Speed Command 0
     list_of_commands.push_back(write_parameter(slave_id, 0x94 , 0x00));     // Position control - (0) Absolute / (1) Relative
-    list_of_commands.push_back(write_parameter(slave_id, 0x96 , 0x00));     // Nastawa pozycji narastająca
+    list_of_commands.push_back(write_parameter(slave_id, 0x96 , 0x02));     // Nastawa pozycji narastająca
 //FIXME//FIXME//FIXME//FIXME//FIXME
     // Set DI source - wiring / communication
     int16_t DI_cfg = (1 << 0) | // DI Config - (BIT_0) servo enable
@@ -230,7 +233,8 @@ std::vector<std::vector<uint8_t>> LCDA6::config_for_modbus_control_position_spee
     // Save parameters
     list_of_commands.push_back(write_parameter(slave_id, 0x1A7, 0x0801));
 
-    processListOfCommands(list_of_commands, sendFunction);
+    processListOfCommands(list_of_commands, sendFunction);   
+
     DEBUG_SERIAL_PRINTLN("*****************Config for speed position mode*****************");
     return list_of_commands;
 }
@@ -308,11 +312,11 @@ int64_t LCDA6::moveAbsolute(uint8_t slave_id, int64_t position, std::function<st
     if (!controlOverModbus)
         return 0;
     std::vector<std::vector<uint8_t>> list_of_commands;
-    // list_of_commands.push_back(write_parameter(slave_id, 0x53 , speed));        // 1st Internal speed - unused - leave for any issues in future
     converter.as_int64 = position;
     list_of_commands.push_back(write_parameter(slave_id, 0x168, converter.as_int16[0]));  // Internal Position Command 0
     list_of_commands.push_back(write_parameter(slave_id, 0x169, converter.as_int16[1]));  // Internal Position Command 0
     list_of_commands.push_back(write_parameter(slave_id, 0x190, abs(speed)));   // Internal Position Speed Command 0
+    list_of_commands.push_back(write_parameter(slave_id, 0x91, 0x00));          // Position mode index
     int16_t DI_cfg = (1 << 0) | // DI Config - (BIT_0) servo enable
                      (1 << 1) | //           - (BIT_1) alarm release
                      (0 << 4) | //           - (BIT_4) C_MODE change
@@ -320,9 +324,16 @@ int64_t LCDA6::moveAbsolute(uint8_t slave_id, int64_t position, std::function<st
 
     list_of_commands.push_back(write_parameter(slave_id, 0x1A4, DI_cfg));   // Set DI source - (0) wiring   / (1) communication     
     DEBUG_SERIAL_PRINTLN("*****************Write Absolute Position*****************");
-    processListOfCommands(list_of_commands, sendFunction);
+    std::vector<int32_t> values = processListOfCommands(list_of_commands, sendFunction);
     DEBUG_SERIAL_PRINTLN("*****************Write Absolute Position*****************");
-
+            DI_cfg = (1 << 0) | // DI Config - (BIT_0) servo enable
+                     (1 << 1) | //           - (BIT_1) alarm release
+                     (0 << 4) | //           - (BIT_4) C_MODE change
+                     (0 << 5);  //           - (BIT_5) position loading
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    list_of_commands.clear();
+    list_of_commands.push_back(write_parameter(slave_id, 0x1A4, DI_cfg));   // Set DI source - (0) wiring   / (1) communication 
+    processListOfCommands(list_of_commands, sendFunction);
     return position; // Return the target position
 }
 
@@ -351,12 +362,12 @@ std::vector<std::vector<uint8_t>> LCDA6::moveVelocity(uint8_t slave_id, int32_t 
                             (0 << 5);  //           - (BIT_5) position loading
 
         list_of_commands.push_back(write_parameter(slave_id, 0x1A4, DI_cfg));   // Set DI source - (0) wiring   / (1) communication 
-        list_of_commands.push_back(write_parameter(slave_id, 0x53 , speed));        // 1st Internal speed - unused - leave for any issues in future
+        list_of_commands.push_back(write_parameter(slave_id, 0x140 , speed));        // 1st Internal speed - unused - leave for any issues in future
     }else if (eControlMode == servomode::Speed)
     {
         list_of_commands.push_back(write_parameter(slave_id, 0x140, speed));        // Internal Speed Command 0
     }
-    list_of_commands.push_back(write_parameter(slave_id, 0x190, abs(speed)));   // Internal Position Speed Command 0 - speed when setting position
+    // list_of_commands.push_back(write_parameter(slave_id, 0x190, abs(speed)));   // Internal Position Speed Command 0 - speed when setting position if 0x90 = 0
 
     DEBUG_SERIAL_PRINTLN("*****************Write Speed*****************");
     processListOfCommands(list_of_commands, sendFunction);
@@ -469,63 +480,3 @@ int8_t LCDA6::ModeToInt(servomode mode){
             return 1; // Default to speed
     }
 }
-
-// int32_t LCDA6::parseModbusResponse(const std::vector<uint8_t>& response){
-//     int32_t val = 0;
-
-//     int16_t LSB = (lower16_bit_first) ? 8 : 0;
-//     int16_t MSB = (lower16_bit_first) ? 0 : 8;
-
-//     if (response.size() < 7) {
-//         return 0x00;
-//     }
-//     int16_t ID = static_cast<int>(response[0]);
-//     int16_t FN = static_cast<int>(response[1]);
-
-//     std::stringstream ss;
-//     ss << std::hex << std::setfill('0') << std::setw(2)
-//        << "ID: "  << ID
-//        << "\tFN:" << FN;
-
-//     switch (FN) {
-//         case 0x03:{ // Read multiple registers
-//             int16_t len = static_cast<int16_t>(response[2]);
-//             ss << "\tbytes: " << std::dec << len;
-
-//             // Iterate over the registers
-//             for(int i = 0; i < len; i+=2){
-//                 val = (static_cast<int16_t>(response[3+2*i]) << LSB)  | (static_cast<int16_t>(response[4+2*i]) << MSB);
-//                 ss << "\tvalue: " << val
-//                    << "\thex: "   << std::hex << "0x" << std::setfill('0') << std::setw(2) << static_cast<int>(val);
-//             }
-//             ss << std::endl;
-//             break;
-//         }
-//         case 0x06:{ // Write single register
-//             int16_t addr = (static_cast<int16_t>(response[2]) << LSB)  | (static_cast<int16_t>(response[3]) << MSB);
-//             ss << "\taddr: "<< std::hex << "0x" << std::setfill('0') << std::setw(2) << static_cast<int>(addr);
-
-//             val = (static_cast<int16_t>(response[4]) << LSB)  | (static_cast<int16_t>(response[5]) << MSB);
-//             ss << "\tvalue: " << std::dec << val
-//                << "\thex: "   << std::hex << "0x" << std::setfill('0') << std::setw(2) << static_cast<int>(val)
-//                << std::endl;
-//             break;
-//         }
-//         case 0x10:{ // Write 32-bit register
-//             int16_t addr = (static_cast<int16_t>(response[2]) << LSB)  | (static_cast<int16_t>(response[3]) << MSB);
-//             ss << "\taddr: "<< std::hex << "0x" << std::setfill('0') << std::setw(2) << static_cast<int>(addr);
-//             val = (static_cast<int16_t>(response[4]) << LSB)  | (static_cast<int16_t>(response[5]) << MSB);
-
-//             ss << "\tregs: "<< std::dec << val
-//                << "\t\thex: "  << std::hex << "0x" << std::setfill('0') << std::setw(2) << static_cast<int>(val)
-//                << std::endl;
-//             break;
-//         }
-//         default:
-//             return 0x00;
-//             break;
-//     }
-
-//     DEBUG_SERIAL_PRINT(ss.str().c_str());
-//     return val;
-// }

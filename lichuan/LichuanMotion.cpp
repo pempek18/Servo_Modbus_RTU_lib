@@ -84,7 +84,26 @@ std::vector<uint8_t> LichuanMotion::write_parameter(uint8_t slave_id, uint8_t gr
 }
 std::vector<uint8_t> LichuanMotion::write_parameter(uint8_t slave_id, uint16_t address, int16_t value, std::optional<std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)>> sendFunction)
 {
-    return write_parameter(slave_id, address >> 8, address & 0xFF, value);
+    std::vector<MB::ModbusCell> modbusValues;
+    modbusValues.emplace_back(static_cast<uint16_t>(value));
+    MB::ModbusRequest request(slave_id, MB::utils::WriteSingleAnalogOutputRegister, address, 1, modbusValues);
+    std::vector<uint8_t> frame = request.toRaw();
+
+    // Calculate CRC using uint8_t data
+    uint16_t CRC = MB::utils::calculateCRC(frame);
+    auto CRCptr  = reinterpret_cast<uint8_t *>(&CRC);
+    frame.insert(frame.end(), CRCptr, CRCptr + 2);
+#if DEBUG_SERIAL
+    debug_print_frame(frame, true);
+#endif
+
+    // If sendFunction is provided, send the frame and process the response
+    if (sendFunction.has_value()) {
+        std::vector<uint8_t> feedback = sendFunction.value()(frame) ;
+        parseModbusResponse(feedback) ;
+    }
+
+    return frame;
 }
 
 std::vector<uint8_t> LichuanMotion::write_parameter_32(uint8_t slave_id, uint8_t group_number, uint8_t parameter_offset, int32_t value, std::optional<std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)>> sendFunction)
