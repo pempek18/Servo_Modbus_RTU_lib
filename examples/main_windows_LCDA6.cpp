@@ -232,7 +232,7 @@ int main()
             }
             int64_t pos = servo.get_actual_pulse_position(1, send_wrapper);
             std::cout << "Actual Pulse position is : " << std::dec << pos << " hex : 0x" << std::hex << pos << std::flush;
-            std::vector<std::vector<uint8_t>> config = servo.config_for_modbus_control_speed(1, send_wrapper);
+            std::vector<std::vector<uint8_t>> config = servo.config_for_modbus_control_position_speed(1, send_wrapper);
             servo.moveVelocity(1, -speed, send_wrapper);
             servo.enable(1, send_wrapper);
             int64_t pos_to_toggle = pos - add_pos;
@@ -300,11 +300,12 @@ int main()
                 speed = std::stoi(params[0]);
                 add_pos = std::stoi(params[1]);
             }
+            std::vector<std::vector<uint8_t>> config = servo.config_for_modbus_control_position_speed(1, send_wrapper);
             int64_t pos = servo.get_actual_pulse_position(1, send_wrapper);
-            std::cout << "Actual Pulse position is : " << std::dec << pos << " hex : 0x" << std::hex << pos << std::flush;
-            std::vector<std::vector<uint8_t>> config = servo.config_for_modbus_control_speed(1, send_wrapper);
+            std::cout << "Actual Pulse position is : " << std::dec << pos << " hex : 0x" << std::hex << pos << std::flush << std::endl;
             servo.moveVelocity(1, -speed, send_wrapper);
-            servo.enable(1, send_wrapper);
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+            servo.moveVelocity(1,0, send_wrapper);
             uint64_t i=1;
             int64_t pos_to_toggle = pos - add_pos;
             while (true) {
@@ -314,31 +315,19 @@ int main()
                 else
                     pos_to_toggle = pos + i * add_pos - add_pos * 2 ;
                 std::cout << "\rActual Pulse position is : " << std::dec << pos << " i: " << std::dec << i << " pos_to_toggle: " << std::dec << pos_to_toggle << std::flush;
-                servo.get_actual_pulse_position(1, send_wrapper);
-                if (i%2 == 0 && servo.ActualPulseCounterPosition > pos_to_toggle)
+                bool in_target_position = servo.inTargetPosition(1, send_wrapper);
+                if (i%2 == 0 && in_target_position)
                 {
-                    servo.moveVelocity(1, speed, send_wrapper);
+                    servo.moveAbsolute(1, pos_to_toggle, send_wrapper);
                     i++;
                 }
-                else if (i%2 == 1 && servo.ActualPulseCounterPosition < pos_to_toggle)
+                else if (i%2 == 1 && in_target_position)
                 {
-                    servo.moveVelocity(1, -speed, send_wrapper);
+                    servo.moveAbsolute(1, pos_to_toggle, send_wrapper);
                     i++;
                 } 
-                for (int i = 0; i < 100; i++)
-                {
-                    if (std::cin.rdbuf()->in_avail()) {
-                        char c = std::cin.get(); // Get the pressed key
-                        if (c == 'q' || c == 'Q') {
-                            goto end_l_loop;
-                        }
-                    }
-                    std::this_thread::sleep_for(std::chrono::milliseconds(1));
-                }
+                std::this_thread::sleep_for(std::chrono::milliseconds(500));
                 std::cout << std::endl;
-                break;
-            end_l_loop:
-                break;
             }
             break;
         }

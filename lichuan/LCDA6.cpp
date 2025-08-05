@@ -418,7 +418,8 @@ bool LCDA6::inTargetPosition(uint8_t slave_id, std::function<std::vector<uint8_t
    
     std::vector<uint8_t> command = read_parameter(slave_id, 0x8B);         // DO: LOCATION ARRIVAL    
     std::vector<uint8_t> response = sendFunction(command);
-    if (response[0] != 2)
+    int32_t value = parseModbusResponse(response);
+    if (value != 2)
     {
         DEBUG_SERIAL_PRINTLN("Unable to read location arrival, no location arrival output");
         return false;
@@ -428,7 +429,7 @@ bool LCDA6::inTargetPosition(uint8_t slave_id, std::function<std::vector<uint8_t
     response = sendFunction(command);
 
     DEBUG_SERIAL_PRINTLN("*****************Read Current Speed*****************")
-    int32_t value = parseModbusResponse(response);
+    value = parseModbusResponse(response);
     DEBUG_SERIAL_PRINTLN("*****************Read Current Speed*****************")
     if (value == 0)
         return true;
@@ -441,7 +442,8 @@ bool LCDA6::inTargetSpeed(uint8_t slave_id, std::function<std::vector<uint8_t>(c
 {
     std::vector<uint8_t> command = read_parameter(slave_id, 0x8A);         // DO: SPEED ARRIVAL
     std::vector<uint8_t> response = sendFunction(command);
-    if (response[0] != 7)
+    int32_t value = parseModbusResponse(response);
+    if (value != 7)
     {
         DEBUG_SERIAL_PRINTLN("Unable to read speed arrival, no speed arrival output");
         return false;
@@ -450,7 +452,7 @@ bool LCDA6::inTargetSpeed(uint8_t slave_id, std::function<std::vector<uint8_t>(c
     response = sendFunction(command);
 
     DEBUG_SERIAL_PRINTLN("*****************Read Current Speed*****************")
-    int32_t value = parseModbusResponse(response);
+    value = parseModbusResponse(response);
     DEBUG_SERIAL_PRINTLN("*****************Read Current Speed*****************")
     if (value == 0)
         return true;
