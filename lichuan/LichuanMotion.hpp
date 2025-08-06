@@ -79,7 +79,7 @@ class LichuanMotion
         /// @param listOfCommands Addres of sequence of frames
         /// @param sendFunction provide function for sending RS-485
         /// @return values in response to list of command
-        std::vector<int32_t> processListOfCommands(std::vector<std::vector<uint8_t>>& listOfCommands,  std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
+        std::vector<int32_t> processListOfCommands(std::vector<std::vector<uint8_t>>& listOfCommands,  std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction, bool feedback = true);
         /// @brief Read specific parameter form servo with given send function
         /// @param slave_id Servo addres
         /// @param group_number PXX-YY - XX - group number

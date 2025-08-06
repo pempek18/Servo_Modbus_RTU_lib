@@ -143,9 +143,11 @@ std::vector<uint8_t> send_wrapper(const std::vector<uint8_t>& request) {
         std::cerr << "Failed to write to serial port" << std::endl;
         return std::vector<uint8_t>();
     }
-    uint16_t size = request.size() + request[5] + 3 ;
+    uint16_t size = 5 + request[5] * 3 ;
+    if (size < 8)
+        size = 8;
     // Read response
-    std::vector<uint8_t> response = serial.read(size, 100);
+    std::vector<uint8_t> response = serial.read(size, 20);
     
     // Print for debugging
     std::cout << "send: ";
@@ -309,22 +311,23 @@ int main()
             while (true) {
                 system("clear");
                 if (i%2 == 0)
-                    pos_to_toggle = pos + i * movement + movement;
+                    pos_to_toggle = pos + movement;
                 else
-                    pos_to_toggle = pos + i * movement - movement * 2 ;
+                    pos_to_toggle = pos - movement * 2 ;
                 std::cout << "\rActual Pulse position is : " << std::dec << pos << " i: " << std::dec << i << " pos_to_toggle: " << std::dec << pos_to_toggle << std::flush << std::endl;
                 bool in_target_position = servo.inTargetPosition(1, send_wrapper);
                 if (i%2 == 0 && in_target_position)
                 {
                     servo.moveAbsolute(1, pos_to_toggle, send_wrapper);
+                    pos = pos_to_toggle;
                     i++;
                 }
                 else if (i%2 == 1 && in_target_position)
                 {
                     servo.moveAbsolute(1, pos_to_toggle, send_wrapper);
+                    pos = pos_to_toggle;
                     i++;
                 } 
-                // std::this_thread::sleep_for(std::chrono::milliseconds(500));
                 std::cout << std::endl;
             }
             break;

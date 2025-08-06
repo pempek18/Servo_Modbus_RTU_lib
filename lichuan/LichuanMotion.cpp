@@ -18,14 +18,21 @@ void LichuanMotion::debug_print_frame(std::vector<uint8_t> frame, bool print)
         DEBUG_SERIAL_PRINTLN("");
     }
 }
-std::vector<int32_t> LichuanMotion::processListOfCommands(std::vector<std::vector<uint8_t>> &listOfCommands, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction)
+std::vector<int32_t> LichuanMotion::processListOfCommands(std::vector<std::vector<uint8_t>> &listOfCommands, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction, bool feedback)
 {
     std::vector<int32_t> values;
     for (std::vector<uint8_t> command : listOfCommands)
     {
-        std::vector<uint8_t> feedback = sendFunction(command) ;
-        int32_t response = parseModbusResponse(feedback) ;
-        values.push_back(response);
+        if (feedback)
+        {
+            std::vector<uint8_t> feedback = sendFunction(command) ;
+            int32_t response = parseModbusResponse(feedback) ;
+            values.push_back(response);
+        }
+        else
+        {
+            sendFunction(command) ;
+        }
     }
     return values ;
 }

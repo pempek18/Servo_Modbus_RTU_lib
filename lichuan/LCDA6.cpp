@@ -320,7 +320,7 @@ int64_t LCDA6::moveAbsolute(uint8_t slave_id, int64_t position, std::function<st
     list_of_commands.push_back(write_parameter(slave_id, 0x168, converter.as_int16[0]));  // Internal Position Command 0
     list_of_commands.push_back(write_parameter(slave_id, 0x169, converter.as_int16[1]));  // Internal Position Command 0
     list_of_commands.push_back(write_parameter(slave_id, 0x190, abs(speed)));   // Internal Position Speed Command 0
-    list_of_commands.push_back(write_parameter(slave_id, 0x91, 0x00));          // Position mode index
+    list_of_commands.push_back(write_parameter(slave_id, 0x91, 0));             // Position mode index
     int16_t DI_cfg = (1 << 0) | // DI Config - (BIT_0) servo enable
                      (1 << 1) | //           - (BIT_1) alarm release
                      (0 << 4) | //           - (BIT_4) C_MODE change
@@ -328,16 +328,16 @@ int64_t LCDA6::moveAbsolute(uint8_t slave_id, int64_t position, std::function<st
 
     list_of_commands.push_back(write_parameter(slave_id, 0x1A4, DI_cfg));   // Set DI source - (0) wiring   / (1) communication     
     DEBUG_SERIAL_PRINTLN("*****************Write Absolute Position*****************");
-    std::vector<int32_t> values = processListOfCommands(list_of_commands, sendFunction);
+    processListOfCommands(list_of_commands, sendFunction, false);
     DEBUG_SERIAL_PRINTLN("*****************Write Absolute Position*****************");
             DI_cfg = (1 << 0) | // DI Config - (BIT_0) servo enable
                      (1 << 1) | //           - (BIT_1) alarm release
                      (0 << 4) | //           - (BIT_4) C_MODE change
                      (0 << 5);  //           - (BIT_5) position loading
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
     list_of_commands.clear();
     list_of_commands.push_back(write_parameter(slave_id, 0x1A4, DI_cfg));   // Set DI source - (0) wiring   / (1) communication 
-    processListOfCommands(list_of_commands, sendFunction);
+    processListOfCommands(list_of_commands, sendFunction, false);
     return position; // Return the target position
 }
 
