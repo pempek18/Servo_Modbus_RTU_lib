@@ -219,6 +219,7 @@ class LichuanMotion
         /// @brief check is servo setup to be controlled over modbus
         /// @return true or false
         bool controledOverModbus();
+        std::vector<std::pair<uint16_t, uint16_t>> get_output_state(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
 
 };
 

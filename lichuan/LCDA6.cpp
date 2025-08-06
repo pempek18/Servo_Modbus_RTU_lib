@@ -177,12 +177,16 @@ std::vector<std::vector<uint8_t>> LCDA6::config_for_modbus_control_position_spee
 {
     std::vector<std::vector<uint8_t>> list_of_commands ;
     // If already in speed mode, do nothing
-    if (controlOverModbus && eControlMode == servomode::PositionSpeed)
+    std::vector<uint8_t> command = read_parameter(slave_id, 0x02);
+    std::vector<uint8_t> response = sendFunction(command);
+    int32_t value = parseModbusResponse(response);
+    if (value == ModeToInt(servomode::PositionSpeed))
     {
-        DEBUG_SERIAL_PRINTLN("*****************Config for speed position mode already in*****************");
+        DEBUG_SERIAL_PRINTLN("Config for speed position mode already in");
+        eControlMode = servomode::PositionSpeed;
+        controlOverModbus = true;
         return list_of_commands;
     }
-    eControlMode = servomode::PositionSpeed;
     DEBUG_SERIAL_PRINTLN("*****************Config for speed position mode*****************");
     // Set speed mode
     list_of_commands.push_back(write_parameter(slave_id, 0x02, ModeToInt(servomode::PositionSpeed)));
@@ -234,7 +238,7 @@ std::vector<std::vector<uint8_t>> LCDA6::config_for_modbus_control_position_spee
     list_of_commands.push_back(write_parameter(slave_id, 0x1A7, 0x0801));
 
     processListOfCommands(list_of_commands, sendFunction);   
-
+    eControlMode = servomode::PositionSpeed;
     DEBUG_SERIAL_PRINTLN("*****************Config for speed position mode*****************");
     return list_of_commands;
 }
@@ -352,7 +356,10 @@ std::vector<std::vector<uint8_t>> LCDA6::moveVelocity(uint8_t slave_id, int32_t 
 {
     std::vector<std::vector<uint8_t>> list_of_commands ;
     if (!controlOverModbus)
-    return list_of_commands;
+    {
+        DEBUG_SERIAL_PRINTLN("Not in control over modbus");
+        return list_of_commands;
+    }
     
     if (eControlMode == servomode::PositionSpeed)
     {
@@ -415,26 +422,12 @@ std::vector<std::vector<uint8_t>> LCDA6::raw_one_rotation(uint8_t slave_id, std:
 
 bool LCDA6::inTargetPosition(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction)
 {
-   
-    std::vector<uint8_t> command = read_parameter(slave_id, 0x8B);         // DO: LOCATION ARRIVAL    
-    std::vector<uint8_t> response = sendFunction(command);
-    int32_t value = parseModbusResponse(response);
-    if (value != 2)
+    std::vector<std::pair<uint16_t, uint16_t>> output_state = get_output_state(slave_id, sendFunction);
+    for (int i = 0; i < output_state.size(); i++)
     {
-        DEBUG_SERIAL_PRINTLN("Unable to read location arrival, no location arrival output");
-        return false;
+        if (output_state[i].first == 2 && output_state[i].second == 1)
+            return true;
     }
-
-    command = read_parameter(slave_id, 0x1D3);             // Get Feedback speed
-    response = sendFunction(command);
-
-    DEBUG_SERIAL_PRINTLN("*****************Read Current Speed*****************")
-    value = parseModbusResponse(response);
-    DEBUG_SERIAL_PRINTLN("*****************Read Current Speed*****************")
-    if (value == 0)
-        return true;
-    else
-        return false;
     return false;
 }
 
@@ -459,6 +452,47 @@ bool LCDA6::inTargetSpeed(uint8_t slave_id, std::function<std::vector<uint8_t>(c
     else
         return false;
     return false;
+}
+
+std::vector<std::pair<uint16_t, uint16_t>> LCDA6::get_output_state(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction)
+{
+    DEBUG_SERIAL_PRINTLN("*****************Get Output State*****************");
+    MB::ModbusRequest request = MB::ModbusRequest(slave_id, MB::utils::ReadAnalogOutputHoldingRegisters, 0x88, 6);
+    std::vector<uint8_t> frame = request.toRaw();
+
+    // Calculate CRC using uint8_t data
+    uint16_t CRC = MB::utils::calculateCRC(frame);
+    auto CRCptr  = reinterpret_cast<uint8_t *>(&CRC);
+    frame.insert(frame.end(), CRCptr, CRCptr + 2);
+
+    std::vector<uint8_t> response = sendFunction(frame);
+    MB::ModbusResponse response_settings = MB::ModbusResponse::fromRaw(response);
+    
+    request = MB::ModbusRequest(slave_id, MB::utils::ReadAnalogOutputHoldingRegisters, 0x1D3, 1);
+    frame.clear();
+    frame = request.toRaw();
+    CRC = MB::utils::calculateCRC(frame);
+    CRCptr  = reinterpret_cast<uint8_t *>(&CRC);
+    frame.insert(frame.end(), CRCptr, CRCptr + 2);
+    response.clear();
+    response = sendFunction(frame);
+    MB::ModbusResponse response_values = MB::ModbusResponse::fromRaw(response);
+
+    std::vector<std::pair<uint16_t, uint16_t>> output_state_vector;
+    for (int i = 0; i < 6; i++)
+    {
+        uint16_t setting = response_settings.registerValues()[i].reg();
+        uint16_t value = (response_values.registerValues()[0].reg() & (1 << i)) ? 1 : 0;
+        output_state_vector.push_back(std::make_pair(setting, value));
+        DEBUG_SERIAL_PRINT("Output state setting ");
+        DEBUG_SERIAL_PRINT(i);
+        DEBUG_SERIAL_PRINT(" is ");
+        DEBUG_SERIAL_PRINT(setting);
+        DEBUG_SERIAL_PRINT(" and value is ");
+        DEBUG_SERIAL_PRINTLN(value);
+    }
+    DEBUG_SERIAL_PRINTLN("*****************Get Output State*****************");
+    return output_state_vector;
 }
 
 int8_t LCDA6::ModeToInt(servomode mode){

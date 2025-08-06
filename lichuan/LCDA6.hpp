@@ -48,7 +48,10 @@ class LCDA6 : public LichuanMotion
         bool inTargetPosition(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
         bool inTargetSpeed(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
 
-        // int32_t parseModbusResponse(const std::vector<uint8_t>& response) override;
+        std::vector<std::pair<uint16_t, uint16_t>> get_output_state(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
+
+        int64_t encoder_resolution = 131072 ;
+        int64_t pulse_per_rotation = 10000 ;
 };
 
 #endif // LCDA6_HPP

@@ -143,9 +143,9 @@ std::vector<uint8_t> send_wrapper(const std::vector<uint8_t>& request) {
         std::cerr << "Failed to write to serial port" << std::endl;
         return std::vector<uint8_t>();
     }
-    
+    uint16_t size = request.size() + request[5] + 3 ;
     // Read response
-    std::vector<uint8_t> response = serial.read(request.size(), 100);
+    std::vector<uint8_t> response = serial.read(size, 100);
     
     // Print for debugging
     std::cout << "send: ";
@@ -286,10 +286,10 @@ int main()
         case 'l' :
         {
             std::cout << "Endless loop, press any key to stop" << std::endl ;
-            std::cout << "Type speed value or q to quit" << std::endl ;
+            std::cout << "Type speed, movement, or q to quit" << std::endl ;
             std::cin >> s ;      
-            int32_t speed = 50;
-            int32_t add_pos = 125;
+            int32_t speed = 1000;
+            int32_t movement = 10000;
             std::vector<std::string> params = splitString(s, ',');
             if (params.size() == 1)
             {
@@ -298,23 +298,21 @@ int main()
             else if (params.size() == 2)
             {
                 speed = std::stoi(params[0]);
-                add_pos = std::stoi(params[1]);
+                movement = std::stoi(params[1]);
             }
             std::vector<std::vector<uint8_t>> config = servo.config_for_modbus_control_position_speed(1, send_wrapper);
             int64_t pos = servo.get_actual_pulse_position(1, send_wrapper);
             std::cout << "Actual Pulse position is : " << std::dec << pos << " hex : 0x" << std::hex << pos << std::flush << std::endl;
-            servo.moveVelocity(1, -speed, send_wrapper);
-            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-            servo.moveVelocity(1,0, send_wrapper);
             uint64_t i=1;
-            int64_t pos_to_toggle = pos - add_pos;
+            int64_t pos_to_toggle = pos - movement;
+            servo.moveAbsolute(1, pos_to_toggle, send_wrapper);
             while (true) {
                 system("clear");
                 if (i%2 == 0)
-                    pos_to_toggle = pos + i * add_pos + add_pos;
+                    pos_to_toggle = pos + i * movement + movement;
                 else
-                    pos_to_toggle = pos + i * add_pos - add_pos * 2 ;
-                std::cout << "\rActual Pulse position is : " << std::dec << pos << " i: " << std::dec << i << " pos_to_toggle: " << std::dec << pos_to_toggle << std::flush;
+                    pos_to_toggle = pos + i * movement - movement * 2 ;
+                std::cout << "\rActual Pulse position is : " << std::dec << pos << " i: " << std::dec << i << " pos_to_toggle: " << std::dec << pos_to_toggle << std::flush << std::endl;
                 bool in_target_position = servo.inTargetPosition(1, send_wrapper);
                 if (i%2 == 0 && in_target_position)
                 {
@@ -326,7 +324,7 @@ int main()
                     servo.moveAbsolute(1, pos_to_toggle, send_wrapper);
                     i++;
                 } 
-                std::this_thread::sleep_for(std::chrono::milliseconds(500));
+                // std::this_thread::sleep_for(std::chrono::milliseconds(500));
                 std::cout << std::endl;
             }
             break;
@@ -376,8 +374,11 @@ int main()
             std::cout << "Actual Absolut position is : " << std::dec << pos << " hex : 0x" << std::hex << pos << " bin : 0b" << std::bitset<64>(pos) << std::endl ;
             break;
         }   
-        case 'q' :        
-           return 0 ;
+        case 'q' : 
+        {
+            std::cout << "Quiting..." << std::endl;
+            return 0 ;
+        }       
         case 'r':
         {
             std::cout << "*****************Read Param*****************" << std::endl;
@@ -439,6 +440,15 @@ int main()
             std::cout << "*****************Write Param*****************" << std::endl;  
             break; 
         }    
+        case 'x' :
+        {
+            std::vector<std::pair<uint16_t, uint16_t>> output_state = servo.get_output_state(1, send_wrapper);
+            for (int i = 0; i < output_state.size(); i++)
+            {
+                std::cout << "Output state " << i << " is " << output_state[i].first << " and value is " << output_state[i].second << std::endl;
+            }
+            break;
+        }
         default:
             break;
         } 
