@@ -175,16 +175,40 @@ std::string LichuanMotion::vector_to_string(std::vector<uint8_t> frame)
 };
 int32_t LichuanMotion::parseModbusResponse(const std::vector<uint8_t> &response)
 {
-    MB::ModbusResponse rsp = MB::ModbusResponse::fromRaw(response);
-    std::stringstream ss;
-    ss << "Function Type: " << rsp.functionType() << std::endl;
-    ss << "Function Code: " << rsp.functionCode() << std::endl;
-    ss << "Slave ID: " << rsp.slaveID() << std::endl;
-    ss << "Register Address: " << rsp.registerAddress() << std::endl;
-    ss << "Register Count: " << rsp.registerValues().size() << std::endl;
-    ss << "Register Values: " << rsp.registerValues()[0].reg() << std::endl;
-    std::cout << ss.str() << std::endl;
-    return rsp.registerValues()[0].reg();
+    try {
+        MB::ModbusResponse rsp = MB::ModbusResponse::fromRaw(response);
+        std::stringstream ss;
+        ss << "Function Type: " << rsp.functionType() << std::endl;
+        ss << "Function Code: " << rsp.functionCode() << std::endl;
+        ss << "Slave ID: " << rsp.slaveID() << std::endl;
+        ss << "Register Address: " << rsp.registerAddress() << std::endl;
+        ss << "Register Count: " << rsp.registerValues().size() << std::endl;
+        
+        // Check if we have register values and if the first cell is a register
+        if (rsp.registerValues().size() > 0) {
+            if (rsp.registerValues()[0].isReg()) {
+                ss << "Register Values: " << rsp.registerValues()[0].reg() << std::endl;
+                std::cout << ss.str() << std::endl;
+                return rsp.registerValues()[0].reg();
+            } else {
+                ss << "First value is a coil: " << (rsp.registerValues()[0].coil() ? "true" : "false") << std::endl;
+                std::cout << ss.str() << std::endl;
+                return rsp.registerValues()[0].coil() ? 1 : 0;
+            }
+        } else {
+            ss << "No register values in response" << std::endl;
+            std::cout << ss.str() << std::endl;
+            return 0; // Return 0 if no values
+        }
+    } catch (const std::exception& e) {
+        std::cout << "Error parsing Modbus response: " << e.what() << std::endl;
+        std::cout << "Response bytes: ";
+        for (size_t i = 0; i < response.size(); ++i) {
+            std::cout << "0x" << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(response[i]) << " ";
+        }
+        std::cout << std::dec << std::endl;
+        return -1; // Return error value
+    }
 };
 uint16_t LichuanMotion::crcValueCalc(const uint8_t *data, uint16_t length)
 {
@@ -211,3 +235,11 @@ bool LichuanMotion::controledOverModbus()
 {
     return controlOverModbus == 1 ;
 };
+bool LichuanMotion::inTargetPosition(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction)
+{
+    return false;
+}
+bool LichuanMotion::inTargetSpeed(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction)
+{
+    return false;
+}

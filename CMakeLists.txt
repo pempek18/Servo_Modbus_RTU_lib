@@ -36,6 +36,7 @@ add_library(Lichuan_RS_Libary STATIC lichuan/LichuanMotion.cpp lichuan/LCDA630P.
 # Windows-specific examples
 if(IS_WINDOWS)
     add_executable(main_windows_LCDA6 examples/main_windows_LCDA6.cpp)
+    add_executable(main_windows_LCDA630P examples/main_windows_LCDA630P.cpp)
     message(STATUS "Added Windows native example")
 endif()
 
@@ -69,6 +70,7 @@ endif()
 
 # Ensure example can use the library
 if(IS_LINUX)
+    target_include_directories(example_linux PRIVATE ${CMAKE_SOURCE_DIR}/Modbus/include)
     target_include_directories(example_linux PRIVATE ${CMAKE_SOURCE_DIR}/lichuan)
     target_link_libraries(example_linux PRIVATE Lichuan_RS_Libary)
     target_include_directories(example_linux_LCDA6 PRIVATE ${CMAKE_SOURCE_DIR}/lichuan)
@@ -79,4 +81,8 @@ if(IS_WINDOWS)
     target_include_directories(main_windows_LCDA6 PRIVATE ${CMAKE_SOURCE_DIR}/lichuan)
     target_include_directories(main_windows_LCDA6 PRIVATE ${CMAKE_SOURCE_DIR}/Modbus/include)
     target_link_libraries(main_windows_LCDA6 PRIVATE Lichuan_RS_Libary ${WINDOWS_LIBS})
+
+    target_include_directories(main_windows_LCDA630P PRIVATE ${CMAKE_SOURCE_DIR}/lichuan)
+    target_include_directories(main_windows_LCDA630P PRIVATE ${CMAKE_SOURCE_DIR}/Modbus/include)
+    target_link_libraries(main_windows_LCDA630P PRIVATE Lichuan_RS_Libary ${WINDOWS_LIBS})    
 endif()

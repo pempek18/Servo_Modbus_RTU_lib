@@ -4,7 +4,7 @@
 #include <windows.h>
 #include <chrono>
 #include <thread>
-#include "LCDA6.hpp"
+#include "LCDA630P.hpp"
 #include <algorithm>
 #include <vector>
 #include <sstream>
@@ -173,7 +173,7 @@ int main()
     }
     
     std::cout << "Serial port opened successfully!" << std::endl;    
-    LCDA6 servo;
+    LCDA630P servo;
     char mode ;
     std::string s ; 
     while (true)
@@ -187,7 +187,7 @@ int main()
             std::cout << "Type position to move absolute or q to quit" << std::endl ;
             std::cin >> s ;      
             int64_t position = std::stoi(s);  
-            servo.config_for_modbus_control_position_speed(1, send_wrapper);
+            servo.config_for_modbus_control_position(1, send_wrapper);
             servo.moveAbsolute(1, position, send_wrapper);
             break;
         }
@@ -198,7 +198,7 @@ int main()
         }
         case 'c':
         {
-            std::vector<std::vector<uint8_t>> config = servo.config_for_modbus_control_position_speed(1, send_wrapper);
+            std::vector<std::vector<uint8_t>> config = servo.config_for_modbus_control_position(1, send_wrapper);
             break;
         }
         case 'd' :
@@ -234,7 +234,7 @@ int main()
             }
             int64_t pos = servo.get_actual_pulse_position(1, send_wrapper);
             std::cout << "Actual Pulse position is : " << std::dec << pos << " hex : 0x" << std::hex << pos << std::flush;
-            std::vector<std::vector<uint8_t>> config = servo.config_for_modbus_control_position_speed(1, send_wrapper);
+            std::vector<std::vector<uint8_t>> config = servo.config_for_modbus_control_speed(1, send_wrapper);
             servo.moveVelocity(1, -speed, send_wrapper);
             servo.enable(1, send_wrapper);
             int64_t pos_to_toggle = pos - add_pos;
@@ -302,7 +302,7 @@ int main()
                 speed = std::stoi(params[0]);
                 movement = std::stoi(params[1]);
             }
-            std::vector<std::vector<uint8_t>> config = servo.config_for_modbus_control_position_speed(1, send_wrapper);
+            std::vector<std::vector<uint8_t>> config = servo.config_for_modbus_control_position(1, send_wrapper);
             int64_t pos = servo.get_actual_pulse_position(1, send_wrapper);
             std::cout << "Actual Pulse position is : " << std::dec << pos << " hex : 0x" << std::hex << pos << std::flush << std::endl;
             uint64_t i=1;
@@ -340,7 +340,7 @@ int main()
             int32_t position = 10000;
             int32_t speed = 1000;
             float torque = 10.0;
-            std::vector<std::vector<uint8_t>> config = servo.config_for_modbus_control_position_speed(1, send_wrapper);
+            std::vector<std::vector<uint8_t>> config = servo.config_for_modbus_control_position(1, send_wrapper);
             if (params.size() == 1)
             {
                 position = std::stoi(params[0]);
@@ -405,7 +405,7 @@ int main()
             std::cout << "Type speed value or q to quit" << std::endl ;
             std::cin >> s ;      
             int32_t speed = std::stoi(s);  
-            std::vector<std::vector<uint8_t>> config = servo.config_for_modbus_control_position_speed(1, send_wrapper);
+            std::vector<std::vector<uint8_t>> config = servo.config_for_modbus_control_speed(1, send_wrapper);
             std::vector<std::vector<uint8_t>> one_rot = servo.moveVelocity(1, speed, send_wrapper);  
             break;
         }         

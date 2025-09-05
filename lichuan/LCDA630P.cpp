@@ -335,3 +335,44 @@ bool LCDA630P::disable(uint8_t slave_id, std::function<std::vector<uint8_t>(cons
     DEBUG_SERIAL_PRINTLN("*****************Disable*****************");
     return value;
 }
+
+std::vector<std::pair<uint16_t, uint16_t>> LCDA630P::get_output_state(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction)
+{
+    DEBUG_SERIAL_PRINTLN("*****************Get Output State*****************");
+    MB::ModbusRequest request = MB::ModbusRequest(slave_id, MB::utils::ReadAnalogOutputHoldingRegisters, 0x88, 6);
+    std::vector<uint8_t> frame = request.toRaw();
+
+    // Calculate CRC using uint8_t data
+    uint16_t CRC = MB::utils::calculateCRC(frame);
+    auto CRCptr  = reinterpret_cast<uint8_t *>(&CRC);
+    frame.insert(frame.end(), CRCptr, CRCptr + 2);
+
+    std::vector<uint8_t> response = sendFunction(frame);
+    MB::ModbusResponse response_settings = MB::ModbusResponse::fromRaw(response);
+    
+    request = MB::ModbusRequest(slave_id, MB::utils::ReadAnalogOutputHoldingRegisters, 0x1D3, 1);
+    frame.clear();
+    frame = request.toRaw();
+    CRC = MB::utils::calculateCRC(frame);
+    CRCptr  = reinterpret_cast<uint8_t *>(&CRC);
+    frame.insert(frame.end(), CRCptr, CRCptr + 2);
+    response.clear();
+    response = sendFunction(frame);
+    MB::ModbusResponse response_values = MB::ModbusResponse::fromRaw(response);
+
+    std::vector<std::pair<uint16_t, uint16_t>> output_state_vector;
+    for (int i = 0; i < 6; i++)
+    {
+        uint16_t setting = response_settings.registerValues()[i].reg();
+        uint16_t value = (response_values.registerValues()[0].reg() & (1 << i)) ? 1 : 0;
+        output_state_vector.push_back(std::make_pair(setting, value));
+        DEBUG_SERIAL_PRINT("Output state setting ");
+        DEBUG_SERIAL_PRINT(i);
+        DEBUG_SERIAL_PRINT(" is ");
+        DEBUG_SERIAL_PRINT(setting);
+        DEBUG_SERIAL_PRINT(" and value is ");
+        DEBUG_SERIAL_PRINTLN(value);
+    }
+    DEBUG_SERIAL_PRINTLN("*****************Get Output State*****************");
+    return output_state_vector;
+}

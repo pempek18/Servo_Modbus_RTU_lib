@@ -1,0 +1,511 @@
+(* Configure for Modbus Control Speed Mode *)
+FUNCTION ConfigForModbusControlSpeed : BOOL
+VAR_INPUT
+    slave_id : USINT;
+END_VAR
+VAR
+    success : BOOL;
+    DI_cfg : INT;
+END_VAR
+BEGIN
+    (* If already in speed mode, do nothing *)
+    IF lcda6_config.control_over_modbus AND (lcda6_config.control_mode = MODE_SPEED) THEN
+        ConfigForModbusControlSpeed := TRUE;
+        RETURN;
+    END_IF;
+    
+    lcda6_config.control_mode := MODE_SPEED;
+    
+    (* Set speed mode *)
+    IF CreateWriteCommand(slave_id, 16#02, ModeToInt(MODE_SPEED)) THEN
+        success := SendModbusCommand(T#100MS);
+    END_IF;
+    
+    (* Set speed source *)
+    IF CreateWriteCommand(slave_id, 16#05, 3) THEN
+        success := SendModbusCommand(T#100MS); (* Internal speed selector *)
+    END_IF;
+    
+    IF CreateWriteCommand(slave_id, 16#92, 0) THEN
+        success := SendModbusCommand(T#100MS); (* Set Commanded speed to Internal Speed Command 0 *)
+    END_IF;
+    
+    (* Set DI source - wiring / communication *)
+    DI_cfg := (1 << 0) OR (1 << 1); (* servo enable, alarm release *)
+    IF CreateWriteCommand(slave_id, 16#1A0, DI_cfg) THEN
+        success := SendModbusCommand(T#100MS);
+    END_IF;
+    
+    (* Limit stroke *)
+    IF CreateWriteCommand(slave_id, 16#04, 16#00) THEN success := SendModbusCommand(T#50MS); END_IF; (* Enable traveling limit *)
+    IF CreateWriteCommand(slave_id, 16#06, 16#02) THEN success := SendModbusCommand(T#50MS); END_IF; (* Enable Zero-speed clamp *)
+    IF CreateWriteCommand(slave_id, 16#66, 16#01) THEN success := SendModbusCommand(T#50MS); END_IF; (* Stroke limit alarm timing *)
+    IF CreateWriteCommand(slave_id, 16#8E, 16#00) THEN success := SendModbusCommand(T#50MS); END_IF; (* DI polarity *)
+    
+    (* DI configuration SPEED MODE *)
+    IF CreateWriteCommand(slave_id, 16#80, 0) THEN success := SendModbusCommand(T#50MS); END_IF;  (* SERVO ENABLE *)
+    IF CreateWriteCommand(slave_id, 16#81, 1) THEN success := SendModbusCommand(T#50MS); END_IF;  (* ALARM RELEASE *)
+    IF CreateWriteCommand(slave_id, 16#82, 2) THEN success := SendModbusCommand(T#50MS); END_IF;  (* CLOCKWISE LIMIT *)
+    IF CreateWriteCommand(slave_id, 16#83, 3) THEN success := SendModbusCommand(T#50MS); END_IF;  (* COUNTERCLOCKWISE LIMIT *)
+    IF CreateWriteCommand(slave_id, 16#84, 5) THEN success := SendModbusCommand(T#50MS); END_IF;  (* ZERO SPEED CLAMP *)
+    IF CreateWriteCommand(slave_id, 16#85, 7) THEN success := SendModbusCommand(T#50MS); END_IF;  (* SPEED COMMAND DIRECTION *)
+    IF CreateWriteCommand(slave_id, 16#86, 11) THEN success := SendModbusCommand(T#50MS); END_IF; (* INTSPD1 *)
+    IF CreateWriteCommand(slave_id, 16#87, 12) THEN success := SendModbusCommand(T#50MS); END_IF; (* INTSPD2 *)
+    
+    (* DO configuration SPEED MODE *)
+    IF CreateWriteCommand(slave_id, 16#88, 0) THEN success := SendModbusCommand(T#50MS); END_IF;  (* SERVO READY *)
+    IF CreateWriteCommand(slave_id, 16#89, 1) THEN success := SendModbusCommand(T#50MS); END_IF;  (* SERVO ALARM *)
+    IF CreateWriteCommand(slave_id, 16#8A, 7) THEN success := SendModbusCommand(T#50MS); END_IF;  (* SPEED ARRIVAL *)
+    IF CreateWriteCommand(slave_id, 16#8B, 3) THEN success := SendModbusCommand(T#50MS); END_IF;  (* EXTERNAL BRAKE RELEASE *)
+    IF CreateWriteCommand(slave_id, 16#8C, 4) THEN success := SendModbusCommand(T#50MS); END_IF;  (* ZERO SPEED DETECTION *)
+    IF CreateWriteCommand(slave_id, 16#8D, 5) THEN success := SendModbusCommand(T#50MS); END_IF;  (* TORQUE LIMIT *)
+    
+    (* Save parameters *)
+    IF CreateWriteCommand(slave_id, 16#1A7, 16#0801) THEN
+        success := SendModbusCommand(T#100MS);
+    END_IF;
+    
+    ConfigForModbusControlSpeed := success;
+END_FUNCTION
+
+(* ===================================================== *)
+(* Servo Control Functions                              *)
+(* ===================================================== *)
+
+(* Enable Servo *)
+FUNCTION EnableServo : BOOL
+VAR_INPUT
+    slave_id : USINT;
+END_VAR
+VAR
+    success : BOOL;
+END_VAR
+BEGIN
+    (* Set communication inputs (enable, alarm release) *)
+    IF CreateWriteCommand(slave_id, 16#1A4, 16#03) THEN
+        success := SendModbusCommand(T#100MS);
+    END_IF;
+    
+    servo_enabled := success;
+    EnableServo := success;
+END_FUNCTION
+
+(* Disable Servo *)
+FUNCTION DisableServo : BOOL
+VAR_INPUT
+    slave_id : USINT;
+END_VAR
+VAR
+    success : BOOL;
+END_VAR
+BEGIN
+    (* Reset inputs *)
+    IF CreateWriteCommand(slave_id, 16#1A4, 16#00) THEN
+        success := SendModbusCommand(T#100MS);
+    END_IF;
+    
+    servo_enabled := FALSE;
+    DisableServo := success;
+END_FUNCTION
+
+(* Get Actual Mechanical Position *)
+FUNCTION GetActualMechanicalPosition : DINT
+VAR_INPUT
+    slave_id : USINT;
+END_VAR
+VAR
+    success : BOOL;
+    value_low, value_high : INT;
+    combined : DINT;
+END_VAR
+BEGIN
+    (* Read position registers *)
+    IF CreateReadCommand(slave_id, 16#1BC) THEN
+        success := SendModbusCommand(T#100MS);
+        value_low := ParseModbusResponse();
+    END_IF;
+    
+    IF CreateReadCommand(slave_id, 16#1BD) THEN
+        success := SendModbusCommand(T#100MS);
+        value_high := ParseModbusResponse();
+    END_IF;
+    
+    (* Combine the two 16-bit words into a signed 32-bit integer *)
+    combined := DINT(value_high) << 16;
+    combined := combined OR DINT(value_low AND 16#FFFF);
+    
+    position_data.mechanical_position := combined;
+    GetActualMechanicalPosition := combined;
+END_FUNCTION
+
+(* Get Actual Pulse Position *)
+FUNCTION GetActualPulsePosition : DINT
+VAR_INPUT
+    slave_id : USINT;
+END_VAR
+VAR
+    pulse_position : DINT;
+    position_float : REAL;
+END_VAR
+BEGIN
+    (* Get mechanical position first *)
+    position_data.mechanical_position := GetActualMechanicalPosition(slave_id);
+    
+    (* Convert to pulse position *)
+    position_float := REAL(position_data.mechanical_position) / REAL(lcda6_config.encoder_resolution);
+    position_float := position_float * REAL(lcda6_config.pulse_per_rotation);
+    pulse_position := REAL_TO_DINT(position_float);
+    
+    position_data.pulse_position := pulse_position;
+    GetActualPulsePosition := pulse_position;
+END_FUNCTION
+
+(* Move Relative *)
+FUNCTION MoveRelative : BOOL
+VAR_INPUT
+    slave_id : USINT;
+    position : DINT;
+    speed : INT := 1000;
+    torque : REAL := 10.0;
+END_VAR
+VAR
+    success : BOOL;
+    target_position : DINT;
+END_VAR
+BEGIN
+    IF NOT lcda6_config.control_over_modbus THEN
+        MoveRelative := FALSE;
+        RETURN;
+    END_IF;
+    
+    (* Get current pulse position *)
+    GetActualPulsePosition(slave_id);
+    
+    (* Calculate target position *)
+    target_position := position_data.pulse_position + position;
+    
+    (* Move to absolute position *)
+    success := MoveAbsolute(slave_id, target_position, speed, torque);
+    
+    MoveRelative := success;
+END_FUNCTION
+
+(* Move Absolute *)
+FUNCTION MoveAbsolute : BOOL
+VAR_INPUT
+    slave_id : USINT;
+    position : DINT;
+    speed : INT := 1000;
+    torque : REAL := 10.0;
+END_VAR
+VAR
+    success : BOOL;
+    DI_cfg : INT;
+    position_low, position_high : INT;
+END_VAR
+BEGIN
+    IF NOT lcda6_config.control_over_modbus THEN
+        MoveAbsolute := FALSE;
+        RETURN;
+    END_IF;
+    
+    (* Split 32-bit position into two 16-bit registers *)
+    position_low := INT(position AND 16#FFFF);
+    position_high := INT((position >> 16) AND 16#FFFF);
+    
+    (* Write position commands *)
+    IF CreateWriteCommand(slave_id, 16#168, position_low) THEN
+        success := SendModbusCommand(T#100MS);
+    END_IF;
+    
+    IF CreateWriteCommand(slave_id, 16#169, position_high) THEN
+        success := SendModbusCommand(T#100MS);
+    END_IF;
+    
+    (* Write speed command *)
+    IF CreateWriteCommand(slave_id, 16#190, ABS(speed)) THEN
+        success := SendModbusCommand(T#100MS);
+    END_IF;
+    
+    (* Set position mode index *)
+    IF CreateWriteCommand(slave_id, 16#91, 0) THEN
+        success := SendModbusCommand(T#100MS);
+    END_IF;
+    
+    (* Set DI configuration for position loading *)
+    DI_cfg := (1 << 0) OR (1 << 1) OR (0 << 4) OR (1 << 5); (* servo enable, alarm release, no c_mode change, position loading *)
+    IF CreateWriteCommand(slave_id, 16#1A4, DI_cfg) THEN
+        success := SendModbusCommand(T#100MS);
+    END_IF;
+    
+    (* Wait and then clear position loading *)
+    TON_DELAY(IN := TRUE, PT := T#10MS);
+    IF TON_DELAY.Q THEN
+        DI_cfg := (1 << 0) OR (1 << 1) OR (0 << 4) OR (0 << 5); (* servo enable, alarm release, no c_mode change, no position loading *)
+        IF CreateWriteCommand(slave_id, 16#1A4, DI_cfg) THEN
+            success := SendModbusCommand(T#100MS);
+        END_IF;
+        TON_DELAY(IN := FALSE);
+    END_IF;
+    
+    position_data.target_position := position;
+    MoveAbsolute := success;
+END_FUNCTION
+
+(* ===================================================== *)
+(* Speed and Torque Control Functions                   *)
+(* ===================================================== *)
+
+(* Get Current Speed *)
+FUNCTION GetSpeed : INT
+VAR_INPUT
+    slave_id : USINT;
+END_VAR
+VAR
+    success : BOOL;
+    value : INT;
+END_VAR
+BEGIN
+    (* Get Feedback speed *)
+    IF CreateReadCommand(slave_id, 16#1C1) THEN
+        success := SendModbusCommand(T#100MS);
+        value := ParseModbusResponse();
+    END_IF;
+    
+    speed_data.current_speed := value;
+    GetSpeed := value;
+END_FUNCTION
+
+(* Move Velocity *)
+FUNCTION MoveVelocity : BOOL
+VAR_INPUT
+    slave_id : USINT;
+    speed : INT;
+END_VAR
+VAR
+    success : BOOL;
+    DI_cfg : INT;
+END_VAR
+BEGIN
+    IF NOT lcda6_config.control_over_modbus THEN
+        MoveVelocity := FALSE;
+        RETURN;
+    END_IF;
+    
+    IF lcda6_config.control_mode = MODE_POSITION_SPEED THEN
+        (* Set DI configuration for speed mode *)
+        DI_cfg := (1 << 0) OR (1 << 1) OR (1 << 4) OR (0 << 5); (* servo enable, alarm release, c_mode change, no position loading *)
+        IF CreateWriteCommand(slave_id, 16#1A4, DI_cfg) THEN
+            success := SendModbusCommand(T#100MS);
+        END_IF;
+        
+        (* Write speed command *)
+        IF CreateWriteCommand(slave_id, 16#140, speed) THEN
+            success := SendModbusCommand(T#100MS);
+        END_IF;
+    ELSIF lcda6_config.control_mode = MODE_SPEED THEN
+        (* Write speed command directly *)
+        IF CreateWriteCommand(slave_id, 16#140, speed) THEN
+            success := SendModbusCommand(T#100MS);
+        END_IF;
+    END_IF;
+    
+    speed_data.target_speed := speed;
+    MoveVelocity := success;
+END_FUNCTION
+
+(* Get Current Torque *)
+FUNCTION GetTorque : INT
+VAR_INPUT
+    slave_id : USINT;
+END_VAR
+VAR
+    success : BOOL;
+    value : INT;
+END_VAR
+BEGIN
+    (* Get Feedback torque *)
+    IF CreateReadCommand(slave_id, 16#1C4) THEN
+        success := SendModbusCommand(T#100MS);
+        value := ParseModbusResponse();
+    END_IF;
+    
+    torque_data.current_torque := value;
+    GetTorque := value;
+END_FUNCTION
+
+(* Set Torque *)
+FUNCTION SetTorque : BOOL
+VAR_INPUT
+    slave_id : USINT;
+    torque : REAL;
+END_VAR
+VAR
+    success : BOOL;
+    torque_value : INT;
+END_VAR
+BEGIN
+    IF NOT lcda6_config.control_over_modbus THEN
+        SetTorque := FALSE;
+        RETURN;
+    END_IF;
+    
+    (* Limit torque to valid range *)
+    IF torque > 100.0 THEN
+        torque := 100.0;
+    ELSIF torque < 0.0 THEN
+        torque := 0.0;
+    END_IF;
+    
+    (* Convert torque percentage to register value *)
+    torque_value := REAL_TO_INT(torque * 25.0);
+    
+    (* Write torque commands *)
+    IF CreateWriteCommand(slave_id, 16#5E, torque_value) THEN
+        success := SendModbusCommand(T#100MS); (* 1st torque limit *)
+    END_IF;
+    
+    IF CreateWriteCommand(slave_id, 16#12C, torque_value) THEN
+        success := SendModbusCommand(T#100MS); (* Internal torque command 0 *)
+    END_IF;
+    
+    torque_data.target_torque := torque_value;
+    SetTorque := success;
+END_FUNCTION
+
+(* ===================================================== *)
+(* Status Monitoring Functions                          *)
+(* ===================================================== *)
+
+(* Check if in Target Position *)
+FUNCTION InTargetPosition : BOOL
+VAR_INPUT
+    slave_id : USINT;
+END_VAR
+VAR
+    output_states : ARRAY[0..5] OF OUTPUT_STATE;
+    i : USINT;
+END_VAR
+BEGIN
+    (* Get output states *)
+    GetOutputState(slave_id, output_states);
+    
+    (* Check for location arrival *)
+    FOR i := 0 TO 5 DO
+        IF (output_states[i].setting = 2) AND (output_states[i].value = 1) THEN
+            in_target_position := TRUE;
+            InTargetPosition := TRUE;
+            RETURN;
+        END_IF;
+    END_FOR;
+    
+    in_target_position := FALSE;
+    InTargetPosition := FALSE;
+END_FUNCTION
+
+(* Check if in Target Speed *)
+FUNCTION InTargetSpeed : BOOL
+VAR_INPUT
+    slave_id : USINT;
+END_VAR
+VAR
+    success : BOOL;
+    value : INT;
+END_VAR
+BEGIN
+    (* Check speed arrival output *)
+    IF CreateReadCommand(slave_id, 16#8A) THEN
+        success := SendModbusCommand(T#100MS);
+        value := ParseModbusResponse();
+        IF value <> 7 THEN
+            (* No speed arrival output configured *)
+            InTargetSpeed := FALSE;
+            RETURN;
+        END_IF;
+    END_IF;
+    
+    (* Get current speed *)
+    value := GetSpeed(slave_id);
+    
+    IF value = 0 THEN
+        in_target_speed := TRUE;
+        InTargetSpeed := TRUE;
+    ELSE
+        in_target_speed := FALSE;
+        InTargetSpeed := FALSE;
+    END_IF;
+END_FUNCTION
+
+(* Get Output State *)
+FUNCTION GetOutputState : BOOL
+VAR_INPUT
+    slave_id : USINT;
+    VAR_IN_OUT output_states : ARRAY[0..5] OF OUTPUT_STATE;
+END_VAR
+VAR
+    success : BOOL;
+    i : USINT;
+    setting, value : UINT;
+END_VAR
+BEGIN
+    (* Read output settings *)
+    IF CreateReadCommand(slave_id, 16#88) THEN
+        success := SendModbusCommand(T#100MS);
+        (* Note: This would need to be expanded to read multiple registers *)
+    END_IF;
+    
+    (* Read output values *)
+    IF CreateReadCommand(slave_id, 16#1D3) THEN
+        success := SendModbusCommand(T#100MS);
+        value := UINT(ParseModbusResponse());
+    END_IF;
+    
+    (* Parse output states *)
+    FOR i := 0 TO 5 DO
+        output_states[i].setting := UINT(i);
+        output_states[i].value := (value >> i) AND 1;
+    END_FOR;
+    
+    GetOutputState := success;
+END_FUNCTION
+
+(* ===================================================== *)
+(* Timer Variables (must be declared in VAR section)   *)
+(* ===================================================== *)
+
+VAR
+    TON_DELAY : TON;
+END_VAR
+
+(* ===================================================== *)
+(* Library Usage Example                                *)
+(* ===================================================== *)
+
+(* Example of how to use this library in a PLC program:
+   
+   (* Initialize servo *)
+   IF Init_Trigger THEN
+       success := ReadServoBrief(1);  (* Read servo with ID 1 *)
+       IF success THEN
+           success := ConfigForModbusControlPosition(1);  (* Configure for position mode *)
+       END_IF;
+   END_IF;
+   
+   (* Enable servo *)
+   IF Enable_Trigger THEN
+       success := EnableServo(1);
+   END_IF;
+   
+   (* Move to position *)
+   IF Move_Trigger THEN
+       success := MoveAbsolute(1, 10000, 1000, 50.0);  (* Move to position 10000, speed 1000, torque 50% *)
+   END_IF;
+   
+   (* Check status *)
+   in_target := InTargetPosition(1);
+   
+   (* Disable servo *)
+   IF Disable_Trigger THEN
+       success := DisableServo(1);
+   END_IF;
+*)
