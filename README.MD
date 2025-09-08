@@ -61,7 +61,8 @@ This project provides a complete C++ implementation for interfacing with Lichuan
     make
     ```
 
-### Usage
+## Usage
+### Raspberry Pi
 
 1. Connect the RS485 to USB converter to your computer and the Lichuan servo drive
 2. Configure the serial port settings (baud rate: 57600, parity: even, stop bits: 1)
@@ -80,7 +81,7 @@ This project provides a complete C++ implementation for interfacing with Lichuan
     - `p` - Get position
     - `d` - Disable servo
 
-### Development Workflow with Raspberry Pi
+5. Development Workflow with Raspberry Pi
 
 ```sh
 # Copy files to Raspberry Pi
@@ -89,7 +90,38 @@ scp -r lichuan/ examples/ CMakeLists.txt user@10.0.10.104:/home/user/git_workspa
 # SSH into Raspberry Pi
 ssh user@10.0.10.104
 ```
-
+### esp32 using Platformio
+1. Modify Platformio.ini
+```sh
+lib_deps = https://github.com/pempek18/Servo_Modbus_RTU_lib
+build_flags =
+	-std=gnu++17
+	-I .pio/libdeps/m5stack-grey/Servo_Modbus_RTU_lib/Modbus/include
+	-D MODBUS_COMMUNICATION=OFF
+	-D MODBUS_TCP_COMMUNICATION=OFF
+	-D MODBUS_SERIAL_COMMUNICATION=OFF
+	-D MODBUS_EXAMPLE=OFF
+	-D MODBUS_TESTS=OFF
+	-I include
+build_unflags =
+	-std=gnu++11
+```
+2. Modify /libary.json 
+```
+{
+  "name": "Servo_Modbus_RTU_lib",
+  "version": "0.0.0+20250709150841",
+  "build": {
+    "srcFilter": [
+      "-<Modbus/src/Serial/*>",
+      "-<Modbus/src/TCP/*>",
+      "-<Modbus/example/*>",
+      "-<Modbus/tests/*>",
+      "-<examples/*>"
+    ]
+  }
+}
+```
 ## Library Architecture
 
 - **`LichuanMotion`**: Base class providing core Modbus RTU functionality
