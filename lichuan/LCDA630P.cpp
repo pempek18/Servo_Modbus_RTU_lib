@@ -336,6 +336,16 @@ bool LCDA630P::disable(uint8_t slave_id, std::function<std::vector<uint8_t>(cons
     return value;
 }
 
+bool LCDA630P::inTargetPosition(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction)
+{
+    return false;
+}
+
+bool LCDA630P::inTargetSpeed(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction)
+{
+    return false;
+}
+
 std::vector<std::pair<uint16_t, uint16_t>> LCDA630P::get_output_state(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction)
 {
     DEBUG_SERIAL_PRINTLN("*****************Get Output State*****************");
