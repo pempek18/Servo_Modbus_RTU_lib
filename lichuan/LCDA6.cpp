@@ -237,7 +237,7 @@ std::vector<std::vector<uint8_t>> LCDA6::config_for_modbus_control_position_spee
     // Save parameters
     list_of_commands.push_back(write_parameter(slave_id, 0x1A7, 0x0801));
 
-    processListOfCommands(list_of_commands, sendFunction);   
+    processListOfCommands(list_of_commands, sendFunction);
     eControlMode = servomode::PositionSpeed;
     DEBUG_SERIAL_PRINTLN("*****************Config for speed position mode*****************");
     return list_of_commands;
@@ -308,7 +308,7 @@ std::vector<std::vector<uint8_t>> LCDA6::moveRelative(uint8_t slave_id, int32_t 
     get_actual_pulse_position(slave_id, sendFunction);
     int64_t position_delta = ActualPulseCounterPosition + position;
     moveAbsolute(slave_id, position_delta, sendFunction, speed, torque);
-    
+
     return list_of_commands;
 }
 int64_t LCDA6::moveAbsolute(uint8_t slave_id, int64_t position, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction, int32_t speed, float torque)
@@ -326,7 +326,7 @@ int64_t LCDA6::moveAbsolute(uint8_t slave_id, int64_t position, std::function<st
                      (0 << 4) | //           - (BIT_4) C_MODE change
                      (1 << 5);  //           - (BIT_5) position loading
 
-    list_of_commands.push_back(write_parameter(slave_id, 0x1A4, DI_cfg));   // Set DI source - (0) wiring   / (1) communication     
+    list_of_commands.push_back(write_parameter(slave_id, 0x1A4, DI_cfg));   // Set DI source - (0) wiring   / (1) communication
     DEBUG_SERIAL_PRINTLN("*****************Write Absolute Position*****************");
     processListOfCommands(list_of_commands, sendFunction, false);
     DEBUG_SERIAL_PRINTLN("*****************Write Absolute Position*****************");
@@ -336,12 +336,25 @@ int64_t LCDA6::moveAbsolute(uint8_t slave_id, int64_t position, std::function<st
                      (0 << 5);  //           - (BIT_5) position loading
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
     list_of_commands.clear();
-    list_of_commands.push_back(write_parameter(slave_id, 0x1A4, DI_cfg));   // Set DI source - (0) wiring   / (1) communication 
+    list_of_commands.push_back(write_parameter(slave_id, 0x1A4, DI_cfg));   // Set DI source - (0) wiring   / (1) communication
     processListOfCommands(list_of_commands, sendFunction, false);
     return position; // Return the target position
 }
 
 // Speed
+std::vector<std::vector<uint8_t>> LCDA6::set_speed(uint8_t slave_id, int32_t speed, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction)
+{
+    std::vector<std::vector<uint8_t>> list_of_commands;
+    if (!controlOverModbus){
+        DEBUG_SERIAL_PRINTLN("Not in control over modbus");
+        return list_of_commands;
+    }
+    list_of_commands.push_back(write_parameter(slave_id, 0x190, abs(speed)));   // Internal Position Speed Command 0
+    DEBUG_SERIAL_PRINTLN("*****************Set Speed*****************");
+    processListOfCommands(list_of_commands, sendFunction, false);
+    DEBUG_SERIAL_PRINTLN("*****************Set Speed*****************");
+    return list_of_commands;
+}
 int16_t LCDA6::get_speed(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t> &)> sendFunction)
 {
     std::vector<uint8_t> command = read_parameter(slave_id, 0x1C1);             // Get Feedback speed
@@ -360,18 +373,22 @@ std::vector<std::vector<uint8_t>> LCDA6::moveVelocity(uint8_t slave_id, int32_t 
         DEBUG_SERIAL_PRINTLN("Not in control over modbus");
         return list_of_commands;
     }
-    
+
     if (eControlMode == servomode::PositionSpeed)
     {
+    DEBUG_SERIAL_PRINTLN("*****************Write Speed Position Speed*****************");
+
         int16_t DI_cfg =    (1 << 0) | // DI Config - (BIT_0) servo enable
                             (1 << 1) | //           - (BIT_1) alarm release
                             (1 << 4) | //           - (BIT_4) C_MODE change
                             (0 << 5);  //           - (BIT_5) position loading
 
-        list_of_commands.push_back(write_parameter(slave_id, 0x1A4, DI_cfg));   // Set DI source - (0) wiring   / (1) communication 
-        list_of_commands.push_back(write_parameter(slave_id, 0x140 , speed));        // 1st Internal speed - unused - leave for any issues in future
+        list_of_commands.push_back(write_parameter(slave_id, 0x1A4, DI_cfg));   // Set DI source - (0) wiring   / (1) communication
+        list_of_commands.push_back(write_parameter(slave_id, 0x140 , speed));   // 1st Internal speed - unused - leave for any issues in future
     }else if (eControlMode == servomode::Speed)
     {
+    DEBUG_SERIAL_PRINTLN("*****************Write Speed Speed*****************");
+
         list_of_commands.push_back(write_parameter(slave_id, 0x140, speed));        // Internal Speed Command 0
     }
     // list_of_commands.push_back(write_parameter(slave_id, 0x190, abs(speed)));   // Internal Position Speed Command 0 - speed when setting position if 0x90 = 0
@@ -467,7 +484,7 @@ std::vector<std::pair<uint16_t, uint16_t>> LCDA6::get_output_state(uint8_t slave
 
     std::vector<uint8_t> response = sendFunction(frame);
     MB::ModbusResponse response_settings = MB::ModbusResponse::fromRaw(response);
-    
+
     request = MB::ModbusRequest(slave_id, MB::utils::ReadAnalogOutputHoldingRegisters, 0x1D3, 1);
     frame.clear();
     frame = request.toRaw();

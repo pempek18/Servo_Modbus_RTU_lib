@@ -41,7 +41,7 @@ std::vector<uint8_t> LichuanMotion::read_parameter(uint8_t slave_id, uint8_t gro
 {
     int16_t address = group_number << 8 | parameter_offset;
     MB::ModbusRequest request(slave_id, MB::utils::ReadAnalogOutputHoldingRegisters, address, size);
-    
+
     std::vector<uint8_t> frame = request.toRaw();
 
 
@@ -129,7 +129,7 @@ std::vector<uint8_t> LichuanMotion::write_parameter_32(uint8_t slave_id, uint8_t
         values.push_back((value >> 8) & 0xFF); //Write the high 8 bits of the start function code, hex
         values.push_back(value & 0xFF); //Write the lower 8 bits of the start function code, hex
     }
-    
+
     // Convert uint8_t values to ModbusCell values (2 registers = 4 bytes)
     std::vector<MB::ModbusCell> modbusValues;
     for (size_t i = 0; i < values.size(); i += 2) {
@@ -170,7 +170,7 @@ std::string LichuanMotion::vector_to_string(std::vector<uint8_t> frame)
     std::string request_string = "";
 
     MB::ModbusRequest request = MB::ModbusRequest::fromRaw(frame);
-    request_string = request.toString(); 
+    request_string = request.toString();
     return request_string ;
 };
 int32_t LichuanMotion::parseModbusResponse(const std::vector<uint8_t> &response)
@@ -183,30 +183,30 @@ int32_t LichuanMotion::parseModbusResponse(const std::vector<uint8_t> &response)
         ss << "Slave ID: " << rsp.slaveID() << std::endl;
         ss << "Register Address: " << rsp.registerAddress() << std::endl;
         ss << "Register Count: " << rsp.registerValues().size() << std::endl;
-        
+
         // Check if we have register values and if the first cell is a register
         if (rsp.registerValues().size() > 0) {
             if (rsp.registerValues()[0].isReg()) {
                 ss << "Register Values: " << rsp.registerValues()[0].reg() << std::endl;
-                std::cout << ss.str() << std::endl;
+                DEBUG_SERIAL_PRINTLN(ss.str().c_str());
                 return rsp.registerValues()[0].reg();
             } else {
                 ss << "First value is a coil: " << (rsp.registerValues()[0].coil() ? "true" : "false") << std::endl;
-                std::cout << ss.str() << std::endl;
+                DEBUG_SERIAL_PRINTLN(ss.str().c_str());
                 return rsp.registerValues()[0].coil() ? 1 : 0;
             }
         } else {
             ss << "No register values in response" << std::endl;
-            std::cout << ss.str() << std::endl;
+            DEBUG_SERIAL_PRINTLN(ss.str().c_str());
             return 0; // Return 0 if no values
         }
     } catch (const std::exception& e) {
-        std::cout << "Error parsing Modbus response: " << e.what() << std::endl;
-        std::cout << "Response bytes: ";
+        DEBUG_SERIAL_PRINTLN("Error parsing Modbus response: " << e.what());
+        DEBUG_SERIAL_PRINT("Response bytes: ");
         for (size_t i = 0; i < response.size(); ++i) {
-            std::cout << "0x" << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(response[i]) << " ";
+            DEBUG_SERIAL_PRINT("0x" << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(response[i]) << " ");
         }
-        std::cout << std::dec << std::endl;
+        DEBUG_SERIAL_PRINTLN(std::dec);
         return -1; // Return error value
     }
 };

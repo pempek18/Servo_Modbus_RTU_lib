@@ -6,8 +6,8 @@
 #endif
 #if (DEBUG_SERIAL == true)
     #include <iostream>
-    #define DEBUG_SERIAL_PRINTLN(x) std::cout << x << std::endl;
-    #define DEBUG_SERIAL_PRINT(x) std::cout << x;
+    #define DEBUG_SERIAL_PRINTLN(x)     std::cout << x << std::endl;
+    #define DEBUG_SERIAL_PRINT(x)       std::cout << x;
     #define DEBUG_SERIAL_PRINTF(x, ...) std::cout << x << __VA_ARGS__ << std::endl;
 #else
     #define DEBUG_SERIAL_PRINTLN(x)
@@ -16,6 +16,7 @@
 #endif
 
 #include <cstdint>
+#include <iostream>
 #include <vector>
 #include <iomanip>
 #include <sstream>
@@ -24,9 +25,9 @@
 #include <optional>
 #include <chrono>
 #include <thread>
-#include "MB/modbusException.hpp"
-#include "MB/modbusRequest.hpp"
-#include "MB/modbusResponse.hpp"
+#include "../Modbus/include/MB/modbusException.hpp"
+#include "../Modbus/include/MB/modbusRequest.hpp"
+#include "../Modbus/include/MB/modbusResponse.hpp"
 
 union Converter64 {
     int64_t as_int64;
@@ -218,7 +219,7 @@ class LichuanMotion
         /// @param slave_id Servo addres
         /// @param sendFunction provide function for sending RS-485
         /// @return true if in target speed
-        virtual bool inTargetSpeed(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);        
+        virtual bool inTargetSpeed(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
         std::vector<std::pair<uint16_t, uint16_t>> get_output_state(uint8_t slave_id, std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)> sendFunction);
 
 };
